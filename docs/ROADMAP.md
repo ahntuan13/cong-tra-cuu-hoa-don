@@ -83,6 +83,26 @@ Ký hiệu: 🔴 cần có trước khi dùng thật · 🟠 nên có trong 1–
 | 🟢 C4 | GitHub Actions: tự deploy khi push lên `main`, chạy test trước khi deploy. |
 | 🟢 C5 | Emulator Suite cho môi trường phát triển (`firebase emulators:start`). |
 
-## D. Tính năng từ video tham khảo
+## D. Đối chiếu với phần mềm tham khảo (video demo Huvisoft)
 
-- Video `youtu.be/dnxG3JAMmI4`: chưa xem được (bị chặn khi tải). Bổ sung khi có nội dung.
+Đã có trong app: tải hàng loạt XML/HTML (ZIP), bảng kê tổng hợp/chi tiết, kiểm tra rủi ro NCC (mô phỏng), hạch toán tự động, tờ khai + phụ lục giảm thuế, gộp file, ảnh/PDF → Excel bằng AI.
+
+Còn thiếu:
+
+| # | Tính năng | Mô tả | Làm được ngay? |
+|---|---|---|---|
+| 🔴 D1 | **Nhiều tài khoản thuế trong một công ty** | Danh sách MST (công ty, chi nhánh, hộ kinh doanh) để chuyển qua lại; mỗi MST có dữ liệu hóa đơn riêng; tách **Mua vào / Bán ra** | Có |
+| 🔴 D2 | **Kiểm tra tính hợp lệ từng hóa đơn** | Ngày lập ≠ ngày ký; ngày lập ≠ ngày cấp mã; tên người ký ≠ tên người bán; tên / MST / địa chỉ người mua sai so với thông tin công ty; MST người bán rủi ro. Hiện bảng "Đúng: … / Trên HĐ: …", xuất Excel | Có (từ dữ liệu XML) |
+| 🔴 D3 | **Bộ lọc nâng cao + đếm nhanh** | Lọc theo: có/không PDF gốc, XML, bản thể hiện; ký hiệu, số HĐ, tên/MST người bán, trạng thái HĐ, kết quả kiểm tra. Đếm: có mã / không mã / máy tính tiền; tổng chưa thuế, tiền thuế, thanh toán | Có |
+| 🟠 D4 | **Xem hóa đơn ngay trong app** | Nút Xem / XML / PDF gốc trên từng dòng; trình xem có Tải, In; hiện trạng thái chữ ký số | Có (trừ kiểm tra chữ ký số, cần server) |
+| 🟠 D5 | **Excel chi tiết đủ cột** | Thêm: ngày người bán ký, mã CQT, ngày CQT ký, tiền tệ, tỷ giá, thông tin người mua, mã vật tư, chiết khấu, tổng phí, trạng thái HĐ, kết quả kiểm tra | Có |
+| 🟠 D6 | **Hành động hàng loạt** | Ô "Lựa chọn hành động" áp lên danh sách đang lọc: tải PDF/XML/HTML, kiểm tra rủi ro, xuất Excel | Có |
+| 🟠 D7 | **Tra rủi ro MST nhập tay** | Dán danh sách MST (không cần có hóa đơn); kết quả: tên, địa chỉ, cơ quan thuế quản lý, trạng thái; xuất Excel | Giao diện có; dữ liệu thật cần server (A4) |
+| 🟠 D8 | **Tra MST cá nhân / CCCD hàng loạt** | Cho nhân viên và người phụ thuộc trong bảng lương: CCCD → MST cá nhân, tên, cơ quan thuế, trạng thái; báo "không tìm thấy" | Giao diện có; dữ liệu thật cần server |
+| 🟠 D9 | **Hóa đơn bị thay thế / liên quan** | Tìm và liên kết hóa đơn điều chỉnh, thay thế (trùng B6) | Một phần (từ XML) |
+| 🟠 D10 | **Trạng thái đồng bộ** | "Đồng bộ lúc …", tiến độ theo tháng, số hóa đơn đã đồng bộ | Có (khi làm A1) |
+| 🟢 D11 | **Sao kê ngân hàng scan → Excel** | Mẫu sẵn cho mục Ảnh/PDF → Excel | Có |
+| 🟢 D12 | **Tra cứu tờ khai, giấy nộp tiền, thông báo thuế; hồ sơ dịch vụ công** | Tải tờ khai đã nộp, giấy nộp tiền, thông báo của cơ quan thuế | Cần server + tài khoản thuế điện tử |
+| 🟢 D13 | **Gửi yêu cầu sửa lỗi / tính năng** từ trong app | Form gửi góp ý cho người quản trị | Có |
+
+Video `youtu.be/dnxG3JAMmI4`: chưa xem được (bị chặn khi tải).
