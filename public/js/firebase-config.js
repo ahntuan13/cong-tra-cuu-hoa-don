@@ -8,12 +8,12 @@
 //  Để nguyên "DIEN_..." thì app chạy ở chế độ thử: không đăng nhập, dữ liệu lưu trong trình duyệt.
 // =====================================================================
 export const firebaseConfig = {
-  apiKey: "DIEN_API_KEY",
-  authDomain: "DIEN_PROJECT_ID.firebaseapp.com",
-  projectId: "DIEN_PROJECT_ID",
-  storageBucket: "DIEN_PROJECT_ID.firebasestorage.app",
-  messagingSenderId: "DIEN_SENDER_ID",
-  appId: "DIEN_APP_ID"
+  apiKey: "AIzaSyBwl_yjofWgIHLsuaWpNkSOdldoreUnISE",
+  authDomain: "cong-tra-cuu-hoa-don.firebaseapp.com",
+  projectId: "cong-tra-cuu-hoa-don",
+  storageBucket: "cong-tra-cuu-hoa-don.firebasestorage.app",
+  messagingSenderId: "714600555163",
+  appId: "1:714600555163:web:1feb62dc8ddccbec3f1c3e"
 };
 
 // Mã công ty: mọi dữ liệu nằm dưới orgs/<orgId> trong Firestore.
