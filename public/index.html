@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cổng tra cứu hóa đơn</title>
+<meta name="description" content="Gom hóa đơn đầu vào, đọc XML/PDF, ghép mã, lập bảng kê, tờ khai và đẩy sang phần mềm kế toán Bravo.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f4c5c'/%3E%3Ctext x='16' y='21' font-family='Arial' font-weight='700' font-size='13' fill='white' text-anchor='middle'%3EHĐ%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/app.css">
+<!-- Thư viện xử lý file chạy trên trình duyệt -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="nav" id="nav"></aside>
+  <main id="main"></main>
+</div>
+<div id="overlay"></div>
+
+<!-- Màn hình đăng nhập (chỉ hiện khi đã cấu hình Firebase) -->
+<section id="login" class="login">
+  <div class="login-card" id="login-box">
+    <div class="brand"><div class="mark">HĐ</div><div><h1>Cổng tra cứu hóa đơn</h1><small>Đăng nhập để tiếp tục</small></div></div>
+    <form id="login-form" class="stack" style="gap:10px">
+      <div class="field"><label for="lg-email">Email</label><input id="lg-email" type="email" autocomplete="username" required></div>
+      <div class="field"><label for="lg-pass">Mật khẩu</label><input id="lg-pass" type="password" autocomplete="current-password" minlength="6" required></div>
+      <div class="login-actions">
+        <button class="btn primary" type="submit" data-mode="in">Đăng nhập</button>
+        <button class="btn" type="submit" data-mode="up">Tạo tài khoản</button>
+        <a href="#" id="lg-reset" class="sub">Quên mật khẩu</a>
+      </div>
+    </form>
+    <div class="login-or"><span>hoặc</span></div>
+    <button class="btn" id="lg-google" type="button" style="width:100%;justify-content:center">Đăng nhập bằng Google</button>
+    <p id="lg-msg" class="lg-msg" role="status"></p>
+  </div>
+  <div class="login-card" id="pending" hidden>
+    <h2 style="margin:0 0 6px;font-size:18px">Tài khoản chưa được cấp quyền</h2>
+    <p class="sub" style="margin:0 0 12px">Bạn đã đăng nhập bằng <b id="pd-email"></b>. Gửi mã UID bên dưới cho quản trị (kế toán trưởng) để được thêm vào công ty, rồi tải lại trang.</p>
+    <div class="uid-box"><code id="pd-uid"></code><button class="btn sm" id="pd-copy" type="button">Sao chép</button></div>
+    <button class="btn" id="pd-out" type="button" style="margin-top:14px">Đăng xuất</button>
+  </div>
+</section>
+
+<script src="js/app.js"></script>
+<script type="module" src="js/cloud.js"></script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+rules_version = '2';
+// Cổng tra cứu hóa đơn — quy tắc bảo mật Firestore
+// Dữ liệu mỗi công ty nằm dưới orgs/{orgId}. Chỉ thành viên (có bản ghi trong members) mới đọc/ghi được.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /orgs/{orgId} {
+      function signedIn() { return request.auth != null; }
+      function memberDoc() { return /databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid); }
+      function isMember() { return signedIn() && exists(memberDoc()); }
+      function role() { return get(memberDoc()).data.role; }
+      function canWrite() { return isMember() && role() in ['admin', 'ketoan']; }
+      function isAdmin() { return isMember() && role() == 'admin'; }
+
+      // Danh sách thành viên: ai cũng đọc được bản ghi của chính mình; thành viên đọc được cả danh sách; chỉ quản trị sửa.
+      match /members/{uid} {
+        allow read: if signedIn() && (request.auth.uid == uid || isMember());
+        allow create, update: if isAdmin() && request.resource.data.role in ['admin', 'ketoan', 'xem'];
+        allow delete: if isAdmin() && uid != request.auth.uid;
+      }
+
+      // Lượt dùng AI: chỉ Cloud Function (Admin SDK) ghi; thành viên được xem.
+      match /usage/{id} {
+        allow read: if isMember();
+        allow write: if false;
+      }
+
+      // Dữ liệu nghiệp vụ: meta, invoices, payroll
+      match /{col}/{docId} {
+        allow read: if isMember() && col in ['meta', 'invoices', 'payroll'];
+        allow write: if canWrite() && col in ['meta', 'invoices', 'payroll'];
+      }
+    }
+  }
+}
