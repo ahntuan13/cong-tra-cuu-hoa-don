@@ -1,30 +1,92 @@
 rules_version = '2';
-// Cổng tra cứu hóa đơn — quy tắc bảo mật Firestore
-// Dữ liệu mỗi công ty nằm dưới orgs/{orgId}. Chỉ thành viên (có bản ghi trong members) mới đọc/ghi được.
+// =====================================================================
+//  Cổng tra cứu hóa đơn — quy tắc bảo mật Firestore (nhiều công ty)
+//
+//  orgs/{orgId}                    công ty: { name, createdBy, createdAt, status, plan, ownerEmail, stats }
+//  orgs/{orgId}/members/{uid}      thành viên: { uid, email, role: admin | ketoan | xem }
+//  orgs/{orgId}/invites/{email}    lời mời: { email, role, invitedBy, createdAt }   (email viết thường)
+//  orgs/{orgId}/meta|invoices|payroll/...   dữ liệu nghiệp vụ
+//  orgs/{orgId}/usage/{id}         lượt dùng AI (chỉ Cloud Function ghi)
+//  sysadmins/{uid}                 quản trị hệ thống (tạo tay trong Console)
+//
+//  Nguyên tắc: người ngoài công ty không đọc/ghi được gì của công ty đó,
+//  kể cả quản trị hệ thống (chỉ xem thông tin chung và khóa/mở công ty).
+// =====================================================================
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /orgs/{orgId} {
-      function signedIn() { return request.auth != null; }
-      function memberDoc() { return /databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid); }
-      function isMember() { return signedIn() && exists(memberDoc()); }
-      function role() { return get(memberDoc()).data.role; }
-      function canWrite() { return isMember() && role() in ['admin', 'ketoan']; }
-      function isAdmin() { return isMember() && role() == 'admin'; }
+    function signedIn() { return request.auth != null; }
+    function myEmail() { return request.auth.token.email.lower(); }
+    function verified() { return signedIn() && request.auth.token.email_verified == true; }
+    function isSuper() { return signedIn() && exists(/databases/$(database)/documents/sysadmins/$(request.auth.uid)); }
 
-      // Danh sách thành viên: ai cũng đọc được bản ghi của chính mình; thành viên đọc được cả danh sách; chỉ quản trị sửa.
+    match /sysadmins/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // "Tôi thuộc những công ty nào" — truy vấn collection group members theo uid
+    match /{path=**}/members/{uid} {
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+    // "Tôi có lời mời nào" — truy vấn collection group invites theo email đã xác minh
+    match /{path=**}/invites/{email} {
+      allow read: if verified() && resource.data.email == myEmail();
+    }
+
+    match /orgs/{orgId} {
+      function orgPath() { return /databases/$(database)/documents/orgs/$(orgId); }
+      function memberPath() { return /databases/$(database)/documents/orgs/$(orgId)/members/$(request.auth.uid); }
+      function invitePath() { return /databases/$(database)/documents/orgs/$(orgId)/invites/$(myEmail()); }
+      function isMember() { return signedIn() && exists(memberPath()); }
+      function role() { return get(memberPath()).data.role; }
+      function isAdmin() { return isMember() && role() == 'admin'; }
+      function active() { return get(orgPath()).data.get('status', 'active') != 'locked'; }
+      function canWrite() { return isMember() && role() in ['admin', 'ketoan'] && active(); }
+      function validRole(r) { return r in ['admin', 'ketoan', 'xem']; }
+
+      // ---- Công ty
+      allow read: if isMember() || isSuper();
+      allow create: if signedIn()
+        && orgId.matches('^[a-z0-9-]{3,60}$')
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.keys().hasOnly(['name', 'createdBy', 'createdAt', 'status', 'ownerEmail', 'stats'])
+        && request.resource.data.name is string && request.resource.data.name.size() > 0;
+      allow update: if (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'stats']))
+        || (isSuper() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'plan', 'note']));
+      allow delete: if false;
+
+      // ---- Thành viên
       match /members/{uid} {
-        allow read: if signedIn() && (request.auth.uid == uid || isMember());
-        allow create, update: if isAdmin() && request.resource.data.role in ['admin', 'ketoan', 'xem'];
+        allow read: if isMember() || isSuper() || (signedIn() && request.auth.uid == uid);
+        // (1) Người tạo công ty tự thêm mình làm quản trị, trong cùng lô ghi tạo công ty
+        // (2) Người được mời (email đã xác minh) tự nhận lời mời, vai trò đúng như lời mời
+        allow create: if signedIn() && uid == request.auth.uid && request.resource.data.uid == uid && (
+            (request.resource.data.role == 'admin'
+              && !exists(orgPath())
+              && getAfter(orgPath()).data.createdBy == request.auth.uid)
+            || (verified() && exists(invitePath())
+              && request.resource.data.role == get(invitePath()).data.role)
+          );
+        // (3) Quản trị công ty thêm / đổi vai trò thành viên
+        allow create, update: if isAdmin() && validRole(request.resource.data.role) && request.resource.data.uid == uid;
         allow delete: if isAdmin() && uid != request.auth.uid;
       }
 
-      // Lượt dùng AI: chỉ Cloud Function (Admin SDK) ghi; thành viên được xem.
+      // ---- Lời mời
+      match /invites/{email} {
+        allow read: if isAdmin() || (verified() && email == myEmail());
+        allow create, update: if isAdmin() && request.resource.data.email == email && validRole(request.resource.data.role);
+        allow delete: if isAdmin() || (verified() && email == myEmail());
+      }
+
+      // ---- Lượt dùng AI: chỉ Cloud Function (Admin SDK) ghi
       match /usage/{id} {
         allow read: if isMember();
         allow write: if false;
       }
 
-      // Dữ liệu nghiệp vụ: meta, invoices, payroll
+      // ---- Dữ liệu nghiệp vụ
       match /{col}/{docId} {
         allow read: if isMember() && col in ['meta', 'invoices', 'payroll'];
         allow write: if canWrite() && col in ['meta', 'invoices', 'payroll'];

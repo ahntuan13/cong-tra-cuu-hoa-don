@@ -40,11 +40,38 @@
     <button class="btn" id="lg-google" type="button" style="width:100%;justify-content:center">Đăng nhập bằng Google</button>
     <p id="lg-msg" class="lg-msg" role="status"></p>
   </div>
-  <div class="login-card" id="pending" hidden>
-    <h2 style="margin:0 0 6px;font-size:18px">Tài khoản chưa được cấp quyền</h2>
-    <p class="sub" style="margin:0 0 12px">Bạn đã đăng nhập bằng <b id="pd-email"></b>. Gửi mã UID bên dưới cho quản trị (kế toán trưởng) để được thêm vào công ty, rồi tải lại trang.</p>
-    <div class="uid-box"><code id="pd-uid"></code><button class="btn sm" id="pd-copy" type="button">Sao chép</button></div>
-    <button class="btn" id="pd-out" type="button" style="margin-top:14px">Đăng xuất</button>
+  <!-- Xác minh email -->
+  <div class="login-card" id="verify" hidden>
+    <h2 class="lc-title">Xác minh email</h2>
+    <p class="sub">Đã gửi liên kết xác minh tới <b id="vf-email"></b>. Mở hộp thư (kể cả mục Spam), bấm vào liên kết, rồi quay lại đây.</p>
+    <div class="login-actions"><button class="btn primary" id="vf-done" type="button">Tôi đã xác minh</button><button class="btn" id="vf-resend" type="button">Gửi lại email</button></div>
+    <p class="sub" style="margin-top:14px">Chưa xác minh vẫn vào được công ty của mình, nhưng không nhận được lời mời từ công ty khác. <a href="#" id="vf-skip">Để sau</a></p>
+    <button class="btn sm" data-cloud="out" type="button" style="margin-top:6px">Đăng xuất</button>
+  </div>
+
+  <!-- Chọn / tạo công ty -->
+  <div class="login-card wide" id="orgpick" hidden>
+    <div class="brand"><div class="mark">HĐ</div><div><h1>Chọn công ty</h1><small id="op-email"></small></div></div>
+    <div id="op-invites-wrap" hidden><h3 class="sec">Lời mời đang chờ</h3><div id="op-invites" class="org-list"></div></div>
+    <h3 class="sec">Công ty của bạn</h3>
+    <div id="op-list" class="org-list"></div>
+    <h3 class="sec" style="margin-top:18px">Tạo công ty mới</h3>
+    <form id="op-create" class="login-actions">
+      <input id="op-name" required maxlength="120" placeholder="Tên công ty, ví dụ: Công ty TNHH ABC" style="flex:1;min-width:200px">
+      <button class="btn primary" type="submit">Tạo công ty</button>
+    </form>
+    <p class="sub" style="margin-top:6px">Bạn sẽ là quản trị của công ty mới tạo và mời đồng nghiệp bằng email.</p>
+    <div id="op-unverified" class="callout warn" style="margin-top:12px" hidden>Email chưa xác minh nên chưa thấy được lời mời. Đăng xuất rồi đăng nhập lại sau khi bấm liên kết xác minh trong hộp thư.</div>
+    <details style="margin-top:12px"><summary class="sub">Được thêm bằng mã UID?</summary><div class="uid-box" style="margin-top:8px"><code id="op-uid"></code></div><p class="sub">Gửi mã này cho quản trị công ty, rồi tải lại trang.</p></details>
+    <button class="btn sm" data-cloud="out" type="button" style="margin-top:12px">Đăng xuất</button>
+  </div>
+
+  <!-- Công ty bị khóa -->
+  <div class="login-card" id="locked" hidden>
+    <h2 class="lc-title">Công ty đang tạm khóa</h2>
+    <p class="sub"><b id="lk-name"></b> đã bị quản trị hệ thống tạm khóa. Dữ liệu vẫn được giữ nguyên.</p>
+    <p class="sub" id="lk-note"></p>
+    <div class="login-actions"><button class="btn" id="lk-switch" type="button">Chọn công ty khác</button><button class="btn" data-cloud="out" type="button">Đăng xuất</button></div>
   </div>
 </section>
 

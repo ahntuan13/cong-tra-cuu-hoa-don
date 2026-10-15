@@ -182,3 +182,13 @@ button.chip{cursor:pointer}
 .sumbar b{color:var(--fg)}
 .sumbar .sp{flex:1}
 mark{background:var(--warn-bg);color:var(--warn);border-radius:3px;padding:0 2px}
+
+/* ---------- Chọn công ty ---------- */
+.login-card.wide{width:min(560px,100%)}
+.lc-title{margin:0 0 6px;font-size:18px}
+.org-list{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.org-item{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;font:inherit;color:var(--fg);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+button.org-item{cursor:pointer}
+button.org-item:hover{border-color:var(--ink)}
+.org-item .sub{display:block}
+.login-card h3.sec{margin-top:14px}

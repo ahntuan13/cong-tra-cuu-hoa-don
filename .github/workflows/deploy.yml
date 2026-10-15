@@ -13,7 +13,32 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Kiểm thử quy tắc bảo mật Firestore trên emulator. Sai quy tắc thì không deploy.
+  test-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Cài thư viện test
+        working-directory: tests
+        run: npm ci --no-audit --no-fund
+      - name: Chạy test quy tắc bảo mật
+        run: |
+          set -o pipefail
+          if ! npx --yes firebase-tools@15.30.0 emulators:exec --only firestore --project demo-cthd "node --test tests/firestore.rules.test.mjs" 2>&1 | tee "$RUNNER_TEMP/test.log"; then
+            grep -E "^not ok|Error|AssertionError|expected" "$RUNNER_TEMP/test.log" | head -20 | while IFS= read -r line; do echo "::error::$line"; done
+            exit 1
+          fi
+          grep -E "^# (tests|pass|fail)" "$RUNNER_TEMP/test.log" | while IFS= read -r line; do echo "::notice::$line"; done
+
   deploy:
+    needs: test-rules
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

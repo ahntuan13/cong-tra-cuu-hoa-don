@@ -4,7 +4,8 @@
  * docAi: nhận ảnh chứng từ (hóa đơn, bảng kê) từ app, gọi Claude API để đọc,
  *        trả về JSON { loai, hoaDon, bang }.
  *   - Chỉ thành viên của công ty (orgs/{orgId}/members/{uid}) mới gọi được.
- *   - Giới hạn số lượt đọc mỗi người mỗi ngày (AI_DAILY_LIMIT).
+ *   - Giới hạn số lượt đọc mỗi người mỗi ngày: plan.aiDaily của công ty, mặc định AI_DAILY_LIMIT.
+ *   - Công ty bị khóa (status = locked) không gọi được.
  *   - Khóa API nằm trong Secret Manager (ANTHROPIC_API_KEY), không bao giờ gửi về trình duyệt.
  */
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
@@ -46,8 +47,11 @@ exports.docAi = onCall(
 
     const db = getFirestore();
     const uid = req.auth.uid;
-    const member = await db.doc(`orgs/${orgId}/members/${uid}`).get();
+    const [member, org] = await Promise.all([db.doc(`orgs/${orgId}/members/${uid}`).get(), db.doc(`orgs/${orgId}`).get()]);
     if (!member.exists) throw new HttpsError('permission-denied', 'Tài khoản chưa được cấp quyền.');
+    if (org.exists && org.data().status === 'locked') throw new HttpsError('permission-denied', 'Công ty đang bị khóa.');
+    // Giới hạn lượt đọc mỗi ngày: theo gói của công ty (plan.aiDaily), mặc định AI_DAILY_LIMIT
+    const dailyLimit = Number(org.exists && org.data().plan?.aiDaily) || AI_DAILY_LIMIT.value();
 
     // Đếm lượt dùng trong ngày (giờ Việt Nam)
     const day = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
@@ -55,7 +59,7 @@ exports.docAi = onCall(
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(usageRef);
       const n = snap.exists ? snap.data().count || 0 : 0;
-      if (n >= AI_DAILY_LIMIT.value()) throw new HttpsError('resource-exhausted', 'Hết lượt đọc AI hôm nay.');
+      if (n >= dailyLimit) throw new HttpsError('resource-exhausted', 'Hết lượt đọc AI hôm nay.');
       tx.set(usageRef, { count: FieldValue.increment(1), uid, day, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     });
 

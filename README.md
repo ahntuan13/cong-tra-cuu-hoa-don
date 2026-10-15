@@ -38,7 +38,7 @@ Chạy trên **Firebase**: Hosting (web), Authentication (đăng nhập), Firest
 | | Ảnh/PDF → Excel bằng AI, thêm thẳng thành hóa đơn | Chạy thật (cần Cloud Functions) |
 | | Soạn biên bản, hợp đồng hàng loạt, xuất Word | Chạy thật |
 | Nhân sự | Chấm công, bảng lương, thuế TNCN, quyết toán năm | Chạy thật |
-| Hệ thống | Đăng nhập email/Google, phân quyền Quản trị / Kế toán / Chỉ xem | Chạy thật (cần Firebase) |
+| Hệ thống | Nhiều công ty dùng chung, mời thành viên bằng email, phân quyền Quản trị / Kế toán / Chỉ xem, quản trị hệ thống khóa/mở và đặt giới hạn | Chạy thật (cần Firebase) |
 
 ## Cấu trúc thư mục
 
@@ -106,20 +106,14 @@ Cần: một tài khoản Google, máy đã cài **Node.js 22** trở lên (http
 2. **Location**: chọn `asia-southeast1 (Singapore)`. Sau này **không đổi được**.
 3. Chọn **Start in production mode** → Create. (Quy tắc thật sẽ được nạp ở bước 6.)
 
-### Bước 5 — Tạo tài khoản quản trị đầu tiên
-App chỉ cho người có tên trong danh sách thành viên vào. Người đầu tiên phải thêm tay:
+### Bước 5 — Tạo công ty đầu tiên
+App dùng chung cho **nhiều công ty**, dữ liệu mỗi công ty tách riêng.
+1. Mở app, **Tạo tài khoản** (hoặc đăng nhập Google). Tài khoản email/mật khẩu sẽ nhận email xác minh.
+2. Màn hình **Chọn công ty** → nhập tên → **Tạo công ty**. Bạn là quản trị của công ty đó.
+3. Vào menu **Thành viên & công ty** để mời đồng nghiệp bằng email.
 
-1. Chạy app (bước 6 hoặc chạy thử ở máy), bấm **Tạo tài khoản** bằng email của bạn (hoặc đăng nhập Google).
-2. App báo "Tài khoản chưa được cấp quyền" và hiện **UID**. Bấm **Sao chép**.
-3. Vào **Firestore Database → Data → + Start collection**:
-   - Collection ID: `orgs` → Next
-   - Document ID: *orgId của bạn* (ví dụ `abc-hcm`), thêm 1 field tạm `name` (string) = tên công ty → Save
-4. Bấm vào document vừa tạo → **+ Start collection**:
-   - Collection ID: `members` → Next
-   - Document ID: *dán UID của bạn*
-   - Field `role` (string) = `admin`
-   - Field `email` (string) = email của bạn → Save
-5. Tải lại app: bạn vào được, với quyền **Quản trị**. Từ giờ thêm người khác ngay trong app (menu **Thành viên**).
+**Quản trị hệ thống** (người vận hành app, xem/khóa các công ty, đặt giới hạn): làm một lần trong Console.
+Firestore → Data → **+ Start collection** → Collection ID `sysadmins` → Document ID = *UID của bạn* (xem ở mục "Được thêm bằng mã UID?" trong màn Chọn công ty) → thêm field `note` (string) bất kỳ → Save. Tải lại app sẽ thấy menu **Quản trị hệ thống**.
 
 ### Bước 6 — Cài Firebase CLI và đưa app lên mạng
 ```bash
@@ -146,15 +140,19 @@ Repo có sẵn `.github/workflows/deploy.yml`: mỗi lần đẩy code lên nhá
 
 Nếu bước deploy báo lỗi `403` / `PERMISSION_DENIED`: Google Cloud Console → **IAM** → tìm tài khoản `firebase-adminsdk-…@<project-id>.iam.gserviceaccount.com` → **Edit** → thêm vai trò **Firebase Hosting Admin** và **Firebase Rules Admin** → Save, rồi chạy lại workflow.
 
-## Cấp quyền người dùng
+## Nhiều công ty, cấp quyền người dùng
 
-| Vai trò | Được làm gì |
+| Ai | Làm được gì |
 |---|---|
-| `admin` — Quản trị (kế toán trưởng) | Mọi việc, thêm/xóa thành viên |
+| Quản trị hệ thống (`sysadmins`) | Xem danh sách công ty, khóa/mở công ty, đặt giới hạn số hóa đơn và lượt AI. **Không** xem được hóa đơn, bảng lương của công ty |
+| `admin` — Quản trị công ty (kế toán trưởng) | Mọi việc trong công ty, mời/xóa thành viên, đổi vai trò, đổi tên công ty |
 | `ketoan` — Kế toán | Nhập, sửa, duyệt, xuất dữ liệu |
-| `xem` — Chỉ xem | Xem và xuất báo cáo, không ghi dữ liệu lên máy chủ |
+| `xem` — Chỉ xem | Xem và xuất báo cáo, không ghi dữ liệu |
 
-Người mới: tự **Tạo tài khoản** → gửi UID cho quản trị → quản trị vào **Thành viên**, dán UID, chọn vai trò → **Cấp quyền**.
+- **Mời người mới:** quản trị công ty vào **Thành viên & công ty → Mời người vào công ty**, nhập email và vai trò. Người được mời đăng nhập bằng đúng email đó (Google, hoặc email/mật khẩu **đã xác minh**) sẽ thấy lời mời ở màn Chọn công ty.
+- Một người có thể thuộc nhiều công ty, đổi qua lại bằng **Đổi công ty** ở góc trái.
+- Công ty mới bắt đầu với dữ liệu trống. Việc đầu tiên: bấm **Sửa** ở ô Tài khoản thuế, nhập MST, tên và địa chỉ đăng ký.
+- Quy tắc bảo mật được kiểm thử tự động (`tests/firestore.rules.test.mjs`) trước mỗi lần deploy.
 
 ## Bật AI đọc chứng từ (Cloud Functions)
 
@@ -203,7 +201,7 @@ Hạn mức có thể thay đổi, xem bảng giá chính thức: https://fireba
 | Hiện tượng | Cách xử lý |
 |---|---|
 | Trang trắng, console báo lỗi module | Đang mở bằng `file://`. Chạy qua web server (xem "Chạy thử ngay"). |
-| "Tài khoản chưa được cấp quyền" | Quản trị chưa thêm UID của bạn vào Thành viên, hoặc `orgId` trong config khác với document trong Firestore. |
+| Không thấy lời mời | Đăng nhập đúng email được mời; tài khoản email/mật khẩu phải bấm liên kết xác minh trong hộp thư rồi đăng nhập lại. |
 | "Tên miền này chưa được thêm…" | Authentication → Settings → Authorized domains → thêm tên miền. |
 | "Tài khoản không có quyền ghi dữ liệu" | Vai trò đang là `xem`, hoặc chưa deploy `firestore.rules`. |
 | AI báo "cần cấu hình Firebase" | Chưa đăng nhập, hoặc chưa deploy Functions. |

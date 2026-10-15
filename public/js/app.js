@@ -87,6 +87,10 @@ function seed(){
   // Lịch sử lương 9 tháng (mô phỏng biến động công/OT) để demo quyết toán
   for(let m=1;m<=9;m++)S.emps.forEach((e,i)=>{const c=calcPay({...e,cong:26-((m+i)%3===0?1:0),ot:Math.max(0,e.ot+((m*7+i*3)%9)-4)});S.hist.push({m,ma:e.ma,...c});});
 }
+/* Dữ liệu trống cho công ty mới tạo (dữ liệu mẫu chỉ dùng khi bấm "Khôi phục dữ liệu mẫu") */
+function emptyState(name){
+  S={seq:0,bravoSeq:0,ncc:{},rules:RULES0.map(r=>({...r})),checked:{},invoices:[],emps:[],hist:[],congChuan:26,capBH:46800000,company:name,
+    accounts:[{mst:'',ten:name,dchi:''}],curAcct:''};}
 const STORE='cong-tra-cuu-hoa-don-v1';
 function persist(){if(window.Cloud?.enabled){if(Cloud.user)Cloud.save(S);return;}try{localStorage.setItem(STORE,JSON.stringify(S));}catch(e){}}
 function load(){try{const s=JSON.parse(localStorage.getItem(STORE)||'null');if(s&&s.invoices){S=s;return true;}}catch(e){}return false;}
@@ -305,11 +309,11 @@ const NAV=[
  ['Kế toán',[['map','Ghép mã & hạch toán'],['bravo','Đẩy sang Bravo','sim'],['tk','Tờ khai & phụ lục']]],
  ['Công cụ',[['merge','Gộp file'],['ocr','Ảnh/PDF → Excel','ai'],['docs','Văn bản hàng loạt']]],
  ['Nhân sự',[['pay','Bảng lương']]],
- ['Hệ thống',[['members','Thành viên'],['notes','Ghi chú build']]]];
+ ['Hệ thống',[['members','Thành viên & công ty'],['sys','Quản trị hệ thống'],['notes','Ghi chú build']]]];
 let route='hd';
 function renderNav(){
-  $('#nav').innerHTML=`<div class="brand"><div class="mark">HĐ</div><div><h1>Cổng tra cứu hóa đơn</h1><small>${window.Cloud?.user?esc(Cloud.user.email||Cloud.user.displayName||"Đã đăng nhập")+' · <a href="#" data-act="signOut">Đăng xuất</a> <span id="sync-st"></span>':'Chế độ thử · lưu trong trình duyệt'}</small></div></div>`+
-  NAV.map(([g,items])=>`<div class="grp">${g}</div>`+items.map(([k,l,t])=>`<button data-go="${k}" ${route===k?'aria-current="page"':''}>${l}${t?`<span class="tag ${t}">${t==='sim'?'mô phỏng':'AI'}</span>`:k==='hd'?`<span class="tag">${INV().length}</span>`:k==='check'&&INV('mua').some(i=>checks(i).length)?`<span class="tag sim">${INV('mua').filter(i=>checks(i).length).length}</span>`:''}</button>`).join('')).join('');}
+  $('#nav').innerHTML=`<div class="brand"><div class="mark">HĐ</div><div><h1>${window.Cloud?.org?esc(Cloud.org.name):'Cổng tra cứu hóa đơn'}</h1><small>${window.Cloud?.user?esc(Cloud.user.email||Cloud.user.displayName||"Đã đăng nhập")+' · <a href="#" data-act="switchOrg">Đổi công ty</a> · <a href="#" data-act="signOut">Đăng xuất</a> <span id="sync-st"></span>':'Chế độ thử · lưu trong trình duyệt'}</small></div></div>`+
+  NAV.map(([g,items])=>`<div class="grp">${g}</div>`+items.filter(([k])=>k!=='sys'||window.Cloud?.isSuper).map(([k,l,t])=>`<button data-go="${k}" ${route===k?'aria-current="page"':''}>${l}${t?`<span class="tag ${t}">${t==='sim'?'mô phỏng':'AI'}</span>`:k==='hd'?`<span class="tag">${INV().length}</span>`:k==='check'&&INV('mua').some(i=>checks(i).length)?`<span class="tag sim">${INV('mua').filter(i=>checks(i).length).length}</span>`:''}</button>`).join('')).join('');}
 function go(k){route=k;renderNav();render();try{localStorage.setItem(STORE+'-route',k);}catch(e){}window.scrollTo(0,0);}
 const SCOPED=['hd','check','batch','bk','risk','map','bravo','tk'];
 function render(){$('#main').innerHTML=(SCOPED.includes(route)?acctBar():'')+VIEWS[route]();AFTER[route]?.();persist();}
@@ -319,11 +323,11 @@ function acctBar(){const a=acctOf(S.curAcct);
    <select id="acct">${S.accounts.map(x=>`<option value="${esc(x.mst)}" ${x.mst===S.curAcct?'selected':''}>${esc(x.mst)} · ${esc(x.ten)}</option>`).join('')}</select>
    <button class="btn sm" data-act="acctEdit">Sửa</button><button class="btn sm" data-act="acctAdd">+ Thêm tài khoản</button>
    ${['check','tk'].includes(route)?'':`<div class="seg"><button data-loai="mua" aria-pressed="${curLoai==='mua'}">Mua vào</button><button data-loai="ban" aria-pressed="${curLoai==='ban'}">Bán ra</button></div>`}
-   ${a.dchi?'':'<span class="pill warn">Chưa có địa chỉ – bấm Sửa để kiểm tra địa chỉ người mua</span>'}</div>`;}
+   ${!a.mst?'<span class="pill bad">Chưa nhập mã số thuế – bấm Sửa</span>':a.dchi?'':'<span class="pill warn">Chưa có địa chỉ – bấm Sửa để kiểm tra địa chỉ người mua</span>'}</div>`;}
 function acctModal(edit){const a=edit?acctOf(S.curAcct):{mst:'',ten:'',dchi:''};
   $('#overlay').innerHTML=`<div class="modal" data-closebg><div class="box" role="dialog" aria-label="Tài khoản thuế" style="width:min(520px,100%)"><header><h2>${edit?'Sửa tài khoản thuế':'Thêm tài khoản thuế'}</h2><button class="x" data-close aria-label="Đóng">×</button></header>
    <div class="stack" style="padding:16px;gap:10px">
-    <div class="field"><label for="a-mst">Mã số thuế</label><input id="a-mst" value="${esc(a.mst)}" ${edit?'disabled':''} placeholder="VD: 0312345678 hoặc 0312345678-001"></div>
+    <div class="field"><label for="a-mst">Mã số thuế</label><input id="a-mst" value="${esc(a.mst)}" ${edit&&a.mst?'disabled':''} placeholder="VD: 0312345678 hoặc 0312345678-001"></div>
     <div class="field"><label for="a-ten">Tên đăng ký</label><input id="a-ten" value="${esc(a.ten)}"></div>
     <div class="field"><label for="a-dchi">Địa chỉ đăng ký (dùng để kiểm tra địa chỉ người mua trên hóa đơn)</label><input id="a-dchi" value="${esc(a.dchi)}"></div>
     <div class="sub">Tên và địa chỉ phải khớp đúng đăng ký thuế. Sau sắp xếp đơn vị hành chính, nhớ cập nhật địa chỉ mới.</div></div>
@@ -395,7 +399,7 @@ function filterPanel(){const f=filt;const opt=(id,cur,arr)=>`<select id="${id}">
    </div>
    <footer><button class="btn" data-act="fClear">Xóa lọc</button><button class="btn primary" data-act="fApply">Áp dụng</button></footer></aside>`;}
 AFTER.hd=()=>{const d=$('#drop');['dragenter','dragover'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.add('over');}));['dragleave','drop'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.remove('over');}));d.addEventListener('drop',e=>handleFiles([...e.dataTransfer.files]));};
-async function handleFiles(files){let add=0,dup=0,err=[];
+async function handleFiles(files){if(!quotaOk(files.length))return;let add=0,dup=0,err=[];
   for(const f of files){try{let inv;const n=f.name.toLowerCase();
     if(n.endsWith('.xml'))inv=parseXml(await f.text());
     else if(n.endsWith('.pdf'))inv=await parsePdf(f);
@@ -411,7 +415,7 @@ const SYNC_POOL=[
   {kyhieu:'C26TAN',so:'612',ngay:'2026-10-10',mst:'0312223334',ten:'Công ty TNHH Thiết bị điện An Nhiên',lines:[L('Dây cáp điện CV 2,5mm²','Cuộn',6,1450000,8),L('Aptomat MCB 2P 32A','Cái',10,210000,8)],httt:'TM'},
   {kyhieu:'C26TBM',so:'1043',ngay:'2026-10-08',mst:'0319994445',ten:'Công ty TNHH Bảo trì Minh Khang',lines:[L('Bảo trì hệ thống điều hòa trung tâm quý 4','Gói',1,12500000,8)]},
   {kyhieu:'C26THT',so:'2230',ngay:'2026-10-14',mst:'0315551234',ten:'Công ty TNHH Điện lạnh Hưng Thịnh',lines:[L('Dàn lạnh âm trần cassette 2HP','Bộ',2,14800000)]}];
-async function doSync(){const box=$('#syncbox');const todo=SYNC_POOL.filter(p=>!S.invoices.some(x=>keyOf(x)===keyOf({...p,acct:S.curAcct})));
+async function doSync(){if(!quotaOk(SYNC_POOL.length))return;const box=$('#syncbox');const todo=SYNC_POOL.filter(p=>!S.invoices.some(x=>keyOf(x)===keyOf({...p,acct:S.curAcct})));
   box.innerHTML=`<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>Đồng bộ hóa đơn mua vào từ cơ quan thuế (mô phỏng)</b><span class="sub mono" id="sy-t">0/${todo.length||0}</span></div><div class="progress" style="margin:8px 0"><i id="sy-p"></i></div><div class="sub">Bản thật: dùng tài khoản tra cứu hóa đơn của doanh nghiệp, chạy nền định kỳ, lấy cả XML gốc có mã cơ quan thuế.</div></div>`;
   if(!todo.length){await sleep(500);box.innerHTML='';toast('Không có hóa đơn mới trên cơ quan thuế');return;}
   for(let k=0;k<todo.length;k++){await sleep(350);const raw=JSON.parse(JSON.stringify(todo[k]));const err=raw.kyhieu==='C26TKL'?{nmDchi:'Số 12 Nguyễn Huệ, Quận 1, TP.HCM'}:raw.kyhieu==='C26TVN'?{ngayKy:nextDay(raw.ngay)+'T08:05:00'}:{};const inv=mk(withMeta({...raw,source:'XML',mccqt:'00'+Math.random().toString(16).slice(2,14).toUpperCase()},err));autoMap(inv);S.invoices.unshift(inv);$('#sy-p').style.width=((k+1)/todo.length*100)+'%';$('#sy-t').textContent=`${k+1}/${todo.length}`;}
@@ -671,19 +675,51 @@ VIEWS.pay=()=>{const rows=S.emps.map(e=>({e,c:calcPay(e)}));const sum=f=>rows.re
 
 /* ----- Thành viên (phân quyền) ----- */
 const ROLES={admin:'Quản trị (kế toán trưởng)',ketoan:'Kế toán',xem:'Chỉ xem'};
+const roleOpts=(cur)=>Object.entries(ROLES).map(([k,v])=>`<option value="${k}" ${k===cur?'selected':''}>${v}</option>`).join('');
 VIEWS.members=()=>{
-  if(!window.Cloud?.enabled)return head('Thành viên','Quản lý ai được vào app.')+`<div class="callout info">App đang chạy ở chế độ thử (chưa cấu hình Firebase) nên chưa có đăng nhập và phân quyền. Xem README, mục "Tạo Firebase".</div>`;
-  const admin=Cloud.role==='admin';
-  return head('Thành viên','Người đăng nhập lần đầu sẽ thấy mã UID của họ. Quản trị nhập UID đó vào đây để cấp quyền.')+
-  `<div class="cols"><div class="card"><h3>Danh sách thành viên</h3><div class="scroll" style="margin-top:10px"><table><thead><tr><th>Email</th><th>Vai trò</th><th>UID</th><th></th></tr></thead><tbody id="mem-rows"><tr><td colspan="4" class="empty">Đang tải…</td></tr></tbody></table></div></div>
-  <div class="card"><h3>Thêm thành viên</h3>${admin?`<p class="lead">Chỉ quản trị mới thêm hoặc xóa được thành viên.</p>
-   <div class="stack" style="gap:10px"><div class="field"><label for="m-uid">UID</label><input id="m-uid" placeholder="Dán UID người dùng gửi cho bạn"></div>
-   <div class="field"><label for="m-email">Email</label><input id="m-email" type="email"></div>
-   <div class="field"><label for="m-role">Vai trò</label><select id="m-role">${Object.entries(ROLES).map(([k,v])=>`<option value="${k}" ${k==='ketoan'?'selected':''}>${v}</option>`).join('')}</select></div>
-   <button class="btn primary" data-act="addMember">Cấp quyền</button></div>`:`<p class="lead">Vai trò của bạn: <b>${ROLES[Cloud.role]||Cloud.role}</b>. Liên hệ quản trị để thêm người.</p>`}</div></div>`;};
-AFTER.members=async()=>{if(!window.Cloud?.enabled)return;const el=$('#mem-rows');
-  try{const ms=await Cloud.listMembers();el.innerHTML=ms.map(m=>`<tr><td>${esc(m.email)||'—'}</td><td>${esc(ROLES[m.role]||m.role)}</td><td class="mono sub">${esc(m.uid)}</td><td>${Cloud.role==='admin'&&m.uid!==Cloud.user.uid?`<button class="btn sm" data-act="rmMember" data-uid="${esc(m.uid)}">Xóa</button>`:''}</td></tr>`).join('');}
-  catch(e){el.innerHTML=`<tr><td colspan="4" class="empty">Không đọc được danh sách (${esc(e.code||e.message)}).</td></tr>`;}};
+  if(!window.Cloud?.enabled)return head('Thành viên & công ty','Quản lý ai được vào app.')+`<div class="callout info">App đang chạy ở chế độ thử (chưa cấu hình Firebase) nên chưa có đăng nhập và phân quyền. Xem README, mục "Tạo Firebase".</div>`;
+  const admin=Cloud.role==='admin',p=Cloud.plan;
+  return head('Thành viên & công ty',`Công ty <b>${esc(Cloud.org?.name||'')}</b> · mã <span class="mono">${esc(Cloud.orgId)}</span> · vai trò của bạn: <b>${ROLES[Cloud.role]||Cloud.role}</b>`,
+    `<button class="btn" data-act="switchOrg">Đổi / tạo công ty khác</button>`)+
+  `<div class="cols"><div class="stack">
+    <div class="card"><h3>Thành viên</h3><div class="scroll" style="margin-top:10px"><table><thead><tr><th>Email</th><th>Vai trò</th><th></th></tr></thead><tbody id="mem-rows"><tr><td colspan="3" class="empty">Đang tải…</td></tr></tbody></table></div></div>
+    <div class="card"><h3>Lời mời đang chờ</h3><div class="scroll" style="margin-top:10px"><table><thead><tr><th>Email</th><th>Vai trò</th><th>Người mời</th><th></th></tr></thead><tbody id="inv-rows"><tr><td colspan="4" class="empty">Đang tải…</td></tr></tbody></table></div></div>
+   </div>
+   <div class="stack">
+    ${admin?`<div class="card"><h3>Mời người vào công ty</h3><p class="lead">Người được mời đăng nhập bằng đúng email này (Google, hoặc email/mật khẩu đã xác minh) sẽ thấy lời mời.</p>
+     <div class="stack" style="gap:10px"><div class="field"><label for="iv-email">Email</label><input id="iv-email" type="email" placeholder="ten@congty.vn"></div>
+     <div class="field"><label for="iv-role">Vai trò</label><select id="iv-role">${roleOpts('ketoan')}</select></div>
+     <button class="btn primary" data-act="sendInvite">Gửi lời mời</button></div>
+     <details style="margin-top:12px"><summary class="sub">Thêm bằng mã UID (cách cũ)</summary><div class="stack" style="gap:8px;margin-top:8px"><input id="m-uid" placeholder="UID"><input id="m-email" type="email" placeholder="Email"><select id="m-role">${roleOpts('ketoan')}</select><button class="btn" data-act="addMember">Cấp quyền</button></div></details></div>
+    <div class="card"><h3>Thông tin công ty</h3><div class="stack" style="gap:10px;margin-top:8px"><div class="field"><label for="org-name">Tên hiển thị</label><input id="org-name" value="${esc(Cloud.org?.name||'')}"></div><button class="btn" data-act="renameOrg">Lưu tên</button></div></div>`:''}
+    <div class="card"><h3>Gói sử dụng</h3><div class="kv" style="margin-top:8px"><div></div><div>Số hóa đơn tối đa</div><div class="v">${fmt(S.invoices.length)} / ${fmt(p.maxInvoices)}</div><div></div><div>Lượt đọc AI mỗi ngày</div><div class="v">${fmt(p.aiDaily)}</div></div><p class="sub" style="margin:8px 0 0">Liên hệ quản trị hệ thống để nâng giới hạn.</p></div>
+   </div></div>`;};
+AFTER.members=async()=>{if(!window.Cloud?.enabled)return;const admin=Cloud.role==='admin';
+  try{const ms=await Cloud.listMembers();$('#mem-rows').innerHTML=ms.map(m=>{const me=m.uid===Cloud.user.uid;return `<tr><td>${esc(m.email)||'<span class="mono sub">'+esc(m.uid)+'</span>'}${me?' <span class="pill mut">bạn</span>':''}</td>
+    <td>${admin&&!me?`<select class="cell" data-role-uid="${esc(m.uid)}">${roleOpts(m.role)}</select>`:esc(ROLES[m.role]||m.role)}</td>
+    <td>${admin&&!me?`<button class="btn sm" data-act="rmMember" data-uid="${esc(m.uid)}">Xóa</button>`:''}</td></tr>`;}).join('');}
+  catch(e){$('#mem-rows').innerHTML=`<tr><td colspan="3" class="empty">Không đọc được danh sách (${esc(e.code||e.message)}).</td></tr>`;}
+  if(!admin){$('#inv-rows').innerHTML='<tr><td colspan="4" class="empty">Chỉ quản trị xem được lời mời.</td></tr>';return;}
+  try{const iv=await Cloud.listInvites();$('#inv-rows').innerHTML=iv.length?iv.map(i=>`<tr><td>${esc(i.email)}</td><td>${esc(ROLES[i.role]||i.role)}</td><td class="sub">${esc(i.invitedBy||'')}</td><td><button class="btn sm" data-act="cancelInvite" data-email="${esc(i.email)}">Hủy</button></td></tr>`).join(''):'<tr><td colspan="4" class="empty">Không có lời mời nào.</td></tr>';}
+  catch(e){$('#inv-rows').innerHTML=`<tr><td colspan="4" class="empty">Không đọc được (${esc(e.code||e.message)}).</td></tr>`;}};
+
+/* ----- Quản trị hệ thống (chỉ tài khoản trong sysadmins) ----- */
+VIEWS.sys=()=>{if(!window.Cloud?.isSuper)return head('Quản trị hệ thống','')+'<div class="callout bad">Bạn không có quyền quản trị hệ thống.</div>';
+  return head('Quản trị hệ thống','Danh sách công ty đang dùng app. Quản trị hệ thống chỉ xem thông tin chung, không xem được hóa đơn hay bảng lương của công ty.',`<button class="btn" data-act="sysReload">Tải lại</button>`)+
+  `<div class="panel"><div class="scroll"><table><thead><tr><th>Công ty</th><th>Người tạo</th><th>Ngày tạo</th><th class="num">Hóa đơn</th><th>Giới hạn HĐ / AI mỗi ngày</th><th>Trạng thái</th><th></th></tr></thead><tbody id="sys-rows"><tr><td colspan="7" class="empty">Đang tải…</td></tr></tbody></table></div></div>`;};
+AFTER.sys=async()=>{if(!window.Cloud?.isSuper)return;
+  try{const os=await Cloud.listAllOrgs();os.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+    $('#sys-rows').innerHTML=os.map(o=>{const pl={...Cloud.plan,...(o.plan||{})};const lk=o.status==='locked';return `<tr>
+      <td style="min-width:180px"><b>${esc(o.name||o.id)}</b><div class="sub mono">${esc(o.id)}</div></td><td class="sub">${esc(o.ownerEmail||'')}</td>
+      <td class="mono">${o.createdAt?.seconds?new Date(o.createdAt.seconds*1000).toLocaleDateString('vi-VN'):'—'}</td><td class="num">${fmt(o.stats?.invoices||0)}</td>
+      <td><input class="cell n" style="width:80px" data-plan="${esc(o.id)}:maxInvoices" value="${pl.maxInvoices}"> / <input class="cell n" style="width:56px" data-plan="${esc(o.id)}:aiDaily" value="${pl.aiDaily}"></td>
+      <td>${lk?'<span class="pill bad">Đang khóa</span>':'<span class="pill ok">Hoạt động</span>'}${o.note?`<div class="sub">${esc(o.note)}</div>`:''}</td>
+      <td><button class="btn sm" data-act="sysLock" data-org="${esc(o.id)}" data-lock="${lk?0:1}">${lk?'Mở khóa':'Khóa'}</button></td></tr>`;}).join('')||'<tr><td colspan="7" class="empty">Chưa có công ty nào.</td></tr>';}
+  catch(e){$('#sys-rows').innerHTML=`<tr><td colspan="7" class="empty">Không đọc được (${esc(e.code||e.message)}).</td></tr>`;}};
+
+/* Giới hạn số hóa đơn theo gói của công ty */
+function quotaOk(n=1){if(!window.Cloud?.enabled)return true;const max=Cloud.plan?.maxInvoices||Infinity;if(S.invoices.length+n<=max)return true;
+  toast(`Công ty đã đạt giới hạn ${fmt(max)} hóa đơn. Liên hệ quản trị hệ thống để nâng gói.`);return false;}
 
 /* ----- Ghi chú build ----- */
 VIEWS.notes=()=>{const R=[
@@ -711,9 +747,10 @@ const ACT={
  fApply(){const v=id=>$('#'+id)?.value.trim()||'';Object.assign(filt,{from:v('ff-from'),to:v('ff-to'),pdf:v('ff-pdf'),xml:v('ff-xml'),code:v('ff-code'),src:v('ff-src'),kh:v('ff-kh'),so:v('ff-so'),ten:v('ff-ten'),mst:v('ff-mst'),chk:v('ff-chk')});$('#overlay').innerHTML='';render();},
  fClear(){filt={...F0,q:filt.q};$('#overlay').innerHTML='';render();},
  acctAdd(){acctModal(false);}, acctEdit(){acctModal(true);},
- acctSave(el){const edit=el.dataset.edit==='1';const mst=(edit?S.curAcct:$('#a-mst').value.trim()),ten=$('#a-ten').value.trim(),dchi=$('#a-dchi').value.trim();
+ acctSave(el){const edit=el.dataset.edit==='1';const old=S.curAcct;const mst=(edit&&old?old:$('#a-mst').value.trim()),ten=$('#a-ten').value.trim(),dchi=$('#a-dchi').value.trim();
    if(!/^\d{10}(-\d{3})?$/.test(mst)){toast('MST phải gồm 10 số, chi nhánh thêm -xxx');return;}if(!ten){toast('Nhập tên đăng ký');return;}
-   if(edit)Object.assign(acctOf(mst),{ten,dchi});else{if(S.accounts.some(a=>a.mst===mst)){toast('MST này đã có');return;}S.accounts.push({mst,ten,dchi});S.curAcct=mst;}
+   if(edit&&!old){if(S.accounts.some(a=>a.mst===mst)){toast('MST này đã có');return;}const a=acctOf('');a.mst=mst;a.ten=ten;a.dchi=dchi;S.invoices.forEach(i=>{if(!i.acct)i.acct=mst;});S.curAcct=mst;}
+   else if(edit)Object.assign(acctOf(mst),{ten,dchi});else{if(S.accounts.some(a=>a.mst===mst)){toast('MST này đã có');return;}S.accounts.push({mst,ten,dchi});S.curAcct=mst;}
    if(S.accounts[0].mst===mst)S.company=ten;$('#overlay').innerHTML='';renderNav();render();toast(edit?'Đã lưu tài khoản':'Đã thêm tài khoản '+mst);},
  acctDel(el){if(INV('mua').length+INV('ban').length){toast('Tài khoản còn hóa đơn, không xóa được');return;}if(el.dataset.confirm!=='1'){el.dataset.confirm='1';el.textContent='Bấm lần nữa để xóa';return;}
    S.accounts=S.accounts.filter(a=>a.mst!==S.curAcct);S.curAcct=S.accounts[0].mst;$('#overlay').innerHTML='';renderNav();render();toast('Đã xóa tài khoản');},
@@ -722,7 +759,7 @@ const ACT={
    saveFile(`kiem_tra_hoa_don_${S.curAcct}.xlsx`,xlsxBytes([{name:'Chi tiet',aoa:[['Ký hiệu','Số HĐ','Ngày lập','MST người bán','Tên người bán','Kết quả','Đúng','Trên hóa đơn'],...rows],cols:[10,9,11,13,38,28,40,40]},{name:'Tong hop',aoa:sum,cols:[32,12]}]));},
  approveAll(){let n=0;INV().forEach(i=>{if(i.status==='moi'&&!issues(i).length){i.status='duyet';n++;}});renderNav();render();toast(n?`Đã duyệt ${n} hóa đơn`:'Không có hóa đơn mới nào đủ mã để duyệt');},
  xmlModal,
- xmlGo(){try{const inv=parseXml($('#xml-in').value);if(S.invoices.some(x=>keyOf(x)===keyOf(inv))){toast('Hóa đơn này đã có (trùng MST + ký hiệu + số)');return;}autoMap(inv);S.invoices.unshift(inv);$('#overlay').innerHTML='';renderNav();render();toast(`Đã đọc XML: ${inv.ten} · ${fmt(inv.tong)} đ`);openDrawer(inv.id);}catch(e){toast(e.message);}},
+ xmlGo(){if(!quotaOk())return;try{const inv=parseXml($('#xml-in').value);if(S.invoices.some(x=>keyOf(x)===keyOf(inv))){toast('Hóa đơn này đã có (trùng MST + ký hiệu + số)');return;}autoMap(inv);S.invoices.unshift(inv);$('#overlay').innerHTML='';renderNav();render();toast(`Đã đọc XML: ${inv.ten} · ${fmt(inv.tong)} đ`);openDrawer(inv.id);}catch(e){toast(e.message);}},
  save:el=>saveDrawer(+el.dataset.id,false), approve:el=>saveDrawer(+el.dataset.id,true),
  del(el){S.invoices=S.invoices.filter(i=>i.id!==+el.dataset.id);$('#overlay').innerHTML='';renderNav();render();toast('Đã xóa hóa đơn');},
  aiInv:el=>aiInvoice(+el.dataset.id),
@@ -733,6 +770,14 @@ const ACT={
    try{await Cloud.addMember(uid,email,role);toast('Đã cấp quyền '+(email||uid));render();}catch(e){toast('Không thêm được: '+(e.code||e.message));}},
  async rmMember(el){if(el.dataset.confirm!=='1'){el.dataset.confirm='1';el.textContent='Bấm lần nữa để xóa';return;}
    try{await Cloud.removeMember(el.dataset.uid);toast('Đã xóa thành viên');render();}catch(e){toast('Không xóa được: '+(e.code||e.message));}},
+ async sendInvite(){const email=$('#iv-email').value.trim(),role=$('#iv-role').value;if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){toast('Email không hợp lệ');return;}
+   try{await Cloud.invite(email,role);toast('Đã mời '+email+'. Người này đăng nhập bằng email đó sẽ thấy lời mời.');render();}catch(e){toast('Không gửi được lời mời: '+(e.code||e.message));}},
+ async cancelInvite(el){try{await Cloud.cancelInvite(el.dataset.email);toast('Đã hủy lời mời');render();}catch(e){toast('Không hủy được: '+(e.code||e.message));}},
+ async renameOrg(){const n=$('#org-name').value.trim();if(!n)return;try{await Cloud.renameOrg(n);renderNav();toast('Đã đổi tên công ty');}catch(e){toast('Không đổi được: '+(e.code||e.message));}},
+ switchOrg(){Cloud.switchOrg();},
+ sysReload(){render();},
+ async sysLock(el){const id=el.dataset.org,lock=el.dataset.lock==='1';if(lock&&el.dataset.confirm!=='1'){el.dataset.confirm='1';el.textContent='Bấm lần nữa để khóa';return;}
+   try{await Cloud.setOrgStatus(id,lock?'locked':'active',lock?'Khóa bởi quản trị hệ thống ngày '+new Date().toLocaleDateString('vi-VN'):'');toast(lock?'Đã khóa công ty':'Đã mở khóa');render();}catch(e){toast('Không đổi được: '+(e.code||e.message));}},
  bkXlsx(){const list=INV().filter(inRange);saveFile(`bang_ke_${bk.from}_${bk.to}.xlsx`,xlsxBytes(bkSheets(list)));},
  riskAll,
  push, pAll(el){queue().forEach(i=>el.checked?picked.add(i.id):picked.delete(i.id));render();},
@@ -740,7 +785,7 @@ const ACT={
  tkXlsx(){const d=tkData();saveFile(`to_khai_mua_vao_${tkp.val}.xlsx`,xlsxBytes([{name:'To khai 01GTGT',aoa:[['Chỉ tiêu','Nội dung','Giá trị'],['[23]','Giá trị HHDV mua vào',d.v23],['[24]','Thuế GTGT của HHDV mua vào',d.v24],['[25]','Tổng thuế GTGT được khấu trừ kỳ này',d.v25],[],['Hóa đơn bị loại khỏi [25]'],...d.ex.map(i=>[i.kyhieu+'-'+i.so,i.ten,i.thue,dedErr(i).join(', ')])],cols:[10,40,16,30]},{name:'Phu luc giam thue',aoa:[['Mục I. Hàng hóa, dịch vụ mua vào thuế suất 8%'],['STT','Tên hàng hóa, dịch vụ','Giá trị chưa thuế','Thuế GTGT'],...d.pl.map(([n,o],k)=>[k+1,n,o.v,o.t])],cols:[6,45,18,14]},{name:'Bang ke',aoa:bkSheets(d.list)[0].aoa}]));},
  doMerge, mClear(){mergeFiles=[];render();},
  ocrGo, ocrXlsx(){const r=ocr.res;saveFile('ket_qua_doc_anh.xlsx',xlsxBytes([{name:'Du lieu',aoa:[r.bang.cot||[],...(r.bang.dong||[])]}]));},
- ocrAdd(){const d=invFromAi(ocr.res.hoaDon,'AI');const inv=mk({...d,source:'AI',status:'kiemtra',note:'Đọc bằng AI từ ảnh – đối chiếu trước khi duyệt'});if(inv.mst&&inv.so&&S.invoices.some(x=>keyOf(x)===keyOf(inv))){toast('Hóa đơn này đã có trong danh sách');return;}autoMap(inv);S.invoices.unshift(inv);renderNav();persist();toast('Đã thêm vào danh sách hóa đơn');},
+ ocrAdd(){if(!quotaOk())return;const d=invFromAi(ocr.res.hoaDon,'AI');const inv=mk({...d,source:'AI',status:'kiemtra',note:'Đọc bằng AI từ ảnh – đối chiếu trước khi duyệt'});if(inv.mst&&inv.so&&S.invoices.some(x=>keyOf(x)===keyOf(inv))){toast('Hóa đơn này đã có trong danh sách');return;}autoMap(inv);S.invoices.unshift(inv);renderNav();persist();toast('Đã thêm vào danh sách hóa đơn');},
  docFill(){docState.tsv=tplData(docState.tpl).map(r=>r.join('\t')).join('\n');render();},
  async docx(){const docs=fillDocs();if(docs.length)saveFile(`${TPLS[docState.tpl].name.replace(/\s+/g,'_')}_${docs.length}_ban.docx`,await docxBytes(docs));},
  payXlsx(){const rows=S.emps.map(e=>({e,c:calcPay(e)}));saveFile('bang_luong_thang_10_2026.xlsx',xlsxBytes([{name:'Bang luong T10',aoa:[['Mã','Họ tên','Bộ phận','Lương CB','Phụ cấp','Ngày công','Giờ OT','NPT','Lương theo công','Tiền OT','OT miễn thuế','Tổng thu nhập','BH NLĐ','TN tính thuế','Thuế TNCN','Thực lĩnh'],...rows.map(({e,c})=>[e.ma,e.ten,e.bp,e.lcb,e.pc,e.cong,e.ot,e.npt,c.theoCong,c.otTien,c.otMien,c.gross,c.bh,c.tntt,c.tax,c.net])],cols:[8,20,14,12,10,9,8,6,14,12,12,14,12,14,12,14]}]));},
@@ -764,6 +809,8 @@ document.addEventListener('click',e=>{const t=e.target;
 });
 document.addEventListener('change',e=>{const t=e.target,d=t.dataset;
   if(t.id==='file'){handleFiles([...t.files]);t.value='';return;}
+  if(d.roleUid){Cloud.setRole(d.roleUid,t.value).then(()=>toast('Đã đổi vai trò')).catch(e=>toast('Không đổi được: '+(e.code||e.message)));return;}
+  if(d.plan){const [id,f]=d.plan.split(':');const row=[...document.querySelectorAll(`[data-plan^="${id}:"]`)];const plan={};row.forEach(x=>plan[x.dataset.plan.split(':')[1]]=Math.max(0,vnNum(x.value)));Cloud.setOrgPlan(id,plan).then(()=>toast('Đã lưu giới hạn')).catch(e=>toast('Không lưu được: '+(e.code||e.message)));return;}
   if(t.id==='acct'){S.curAcct=t.value;filt={...F0};bsel.clear();picked.clear();renderNav();render();return;}
   if(d.bsel){t.checked?bsel.add(+d.bsel):bsel.delete(+d.bsel);render();return;}
   if(d.bopt){bopt[d.bopt]=t.checked;return;}
@@ -794,7 +841,9 @@ async function startApp(){
   let loaded=false;
   if(window.Cloud?.enabled){const st=await Cloud.loadState();if(st){S=st;loaded=true;}}
   else loaded=load();
-  if(!loaded){seed();if(window.Cloud?.enabled)Cloud.save(S,true);}
+  if(!loaded){
+    if(window.Cloud?.enabled){emptyState(Cloud.org?.name||'Công ty mới');Cloud.save(S,true);}
+    else seed();}
   migrate();
   try{const r=localStorage.getItem(STORE+'-route');if(r&&VIEWS[r])route=r;}catch(e){}
   renderNav();render();

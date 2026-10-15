@@ -16,9 +16,12 @@ export const firebaseConfig = {
   appId: "1:714600555163:web:1feb62dc8ddccbec3f1c3e"
 };
 
-// Mã công ty: mọi dữ liệu nằm dưới orgs/<orgId> trong Firestore.
-// Chỉ dùng chữ thường không dấu, số và gạch ngang. Ví dụ: "abc-hcm"
-export const orgId = "cong-ty-cua-toi";
+// Nhiều công ty dùng chung app: mỗi người dùng tự tạo công ty hoặc được mời vào công ty.
+// legacyOrgId: mã công ty tạo tay từ trước (bản một công ty) — app tự chuyển dữ liệu cũ sang cách mới.
+export const legacyOrgId = "cong-ty-cua-toi";
+
+// Giới hạn mặc định cho mỗi công ty. Quản trị hệ thống chỉnh riêng từng công ty trong app.
+export const defaultPlan = { maxInvoices: 5000, aiDaily: 50 };
 
 // Vùng chạy Cloud Functions — phải trùng với functions/index.js
 export const functionsRegion = "asia-southeast1";

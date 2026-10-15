@@ -106,3 +106,12 @@ Còn thiếu:
 | 🟢 D13 | **Gửi yêu cầu sửa lỗi / tính năng** từ trong app | Form gửi góp ý cho người quản trị | Có |
 
 Video `youtu.be/dnxG3JAMmI4`: chưa xem được (bị chặn khi tải).
+
+## E. Nhiều công ty
+
+| # | Việc | Trạng thái |
+|---|---|---|
+| ✅ E1 | Một app dùng chung cho nhiều công ty: tạo công ty, mời bằng email, đổi công ty, quản trị hệ thống khóa/mở và đặt giới hạn | Đã làm |
+| 🟠 E2 | Giới hạn số hóa đơn chặn ở phía server (hiện chặn ở app; cần Cloud Functions) | Chưa |
+| 🟠 E3 | Tính phí theo công ty: đếm hóa đơn, lượt AI theo tháng; trang gói dịch vụ | Chưa |
+| 🟢 E4 | **Bản riêng cho công ty yêu cầu giao diện riêng** (white-label): Firebase project riêng, tên miền riêng, logo/màu riêng; dùng chung mã nguồn, cấu hình qua `firebase-config.js` + file thương hiệu | Làm khi có khách yêu cầu |
