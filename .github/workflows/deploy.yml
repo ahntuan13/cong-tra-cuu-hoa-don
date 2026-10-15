@@ -16,9 +16,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -35,7 +35,13 @@ jobs:
       - name: Deploy Hosting và Firestore rules
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
-        run: npx --yes firebase-tools@15.30.0 deploy --only hosting,firestore --project cong-tra-cuu-hoa-don --non-interactive
+        run: |
+          set -o pipefail
+          if ! npx --yes firebase-tools@15.30.0 deploy --only hosting,firestore --project cong-tra-cuu-hoa-don --non-interactive 2>&1 | tee "$RUNNER_TEMP/deploy.log"; then
+            # Đưa các dòng lỗi lên phần tóm tắt của lần chạy để dễ đọc
+            grep -iE "error|denied|permission|not enabled|has not been used|403|404" "$RUNNER_TEMP/deploy.log" | tail -15 | while IFS= read -r line; do echo "::error::$line"; done
+            exit 1
+          fi
 
       - name: Xóa khóa tạm
         if: always()
