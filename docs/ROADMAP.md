@@ -2,7 +2,7 @@
 
 Tài liệu này rà soát app dưới góc nhìn **kế toán viên** và **kế toán trưởng** (KTT), liệt kê phần còn thiếu, xếp theo mức ưu tiên.
 
-Ký hiệu: 🔴 cần có trước khi dùng thật · 🟠 nên có trong 1–2 tháng đầu · 🟢 nâng cao
+Ký hiệu: ✅ đã làm · 🔴 cần có trước khi dùng thật · 🟠 nên có trong 1–2 tháng đầu · 🟢 nâng cao
 
 ---
 
@@ -91,9 +91,9 @@ Còn thiếu:
 
 | # | Tính năng | Mô tả | Làm được ngay? |
 |---|---|---|---|
-| 🔴 D1 | **Nhiều tài khoản thuế trong một công ty** | Danh sách MST (công ty, chi nhánh, hộ kinh doanh) để chuyển qua lại; mỗi MST có dữ liệu hóa đơn riêng; tách **Mua vào / Bán ra** | Có |
-| 🔴 D2 | **Kiểm tra tính hợp lệ từng hóa đơn** | Ngày lập ≠ ngày ký; ngày lập ≠ ngày cấp mã; tên người ký ≠ tên người bán; tên / MST / địa chỉ người mua sai so với thông tin công ty; MST người bán rủi ro. Hiện bảng "Đúng: … / Trên HĐ: …", xuất Excel | Có (từ dữ liệu XML) |
-| 🔴 D3 | **Bộ lọc nâng cao + đếm nhanh** | Lọc theo: có/không PDF gốc, XML, bản thể hiện; ký hiệu, số HĐ, tên/MST người bán, trạng thái HĐ, kết quả kiểm tra. Đếm: có mã / không mã / máy tính tiền; tổng chưa thuế, tiền thuế, thanh toán | Có |
+| ✅ D1 | **Nhiều tài khoản thuế trong một công ty** | Danh sách MST (công ty, chi nhánh, hộ kinh doanh) để chuyển qua lại; mỗi MST có dữ liệu hóa đơn riêng; tách **Mua vào / Bán ra** | Có |
+| ✅ D2 | **Kiểm tra tính hợp lệ từng hóa đơn** | Ngày lập ≠ ngày ký; ngày lập ≠ ngày cấp mã; tên người ký ≠ tên người bán; tên / MST / địa chỉ người mua sai so với thông tin công ty; MST người bán rủi ro. Hiện bảng "Đúng: … / Trên HĐ: …", xuất Excel | Có (từ dữ liệu XML) |
+| ✅ D3 | **Bộ lọc nâng cao + đếm nhanh** | Lọc theo: có/không PDF gốc, XML, bản thể hiện; ký hiệu, số HĐ, tên/MST người bán, trạng thái HĐ, kết quả kiểm tra. Đếm: có mã / không mã / máy tính tiền; tổng chưa thuế, tiền thuế, thanh toán | Có |
 | 🟠 D4 | **Xem hóa đơn ngay trong app** | Nút Xem / XML / PDF gốc trên từng dòng; trình xem có Tải, In; hiện trạng thái chữ ký số | Có (trừ kiểm tra chữ ký số, cần server) |
 | 🟠 D5 | **Excel chi tiết đủ cột** | Thêm: ngày người bán ký, mã CQT, ngày CQT ký, tiền tệ, tỷ giá, thông tin người mua, mã vật tư, chiết khấu, tổng phí, trạng thái HĐ, kết quả kiểm tra | Có |
 | 🟠 D6 | **Hành động hàng loạt** | Ô "Lựa chọn hành động" áp lên danh sách đang lọc: tải PDF/XML/HTML, kiểm tra rủi ro, xuất Excel | Có |

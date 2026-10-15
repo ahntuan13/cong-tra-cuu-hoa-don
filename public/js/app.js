@@ -44,21 +44,35 @@ const PROVIDERS=['VNPT Invoice','Viettel S-Invoice','MISA meInvoice','BKAV eHoaD
 const L=(ten,dvt,sl,dg,ts=10)=>({ten,dvt,sl,dg,tt:Math.round(sl*dg),ts,tk:'',km:''});
 function recalc(inv){inv.truoc=inv.lines.reduce((s,l)=>s+l.tt,0);inv.thue=inv.lines.reduce((s,l)=>s+Math.round(l.tt*l.ts/100),0);inv.tong=inv.truoc+inv.thue;}
 let S;
-function mk(o){const inv={id:++S.seq,khms:'1',status:'moi',source:'XML',note:'',bravoNo:'',httt:'CK',prov:PROVIDERS[S.seq%5],pdf:'',...o};inv.lines=inv.lines.map(l=>({tk:'',km:'',...l}));recalc(inv);return inv;}
+function mk(o){const inv={id:++S.seq,khms:'1',status:'moi',source:'XML',note:'',bravoNo:'',httt:'CK',prov:PROVIDERS[S.seq%5],pdf:'',acct:S.curAcct,loai:'mua',...o};inv.lines=inv.lines.map(l=>({tk:'',km:'',...l}));recalc(inv);return inv;}
+/* Điền thông tin người mua + chữ ký mặc định (đúng) cho dữ liệu mẫu; "err" cố tình tạo sai để demo kiểm tra */
+function withMeta(o,err={}){const a=acctOf(o.acct||S.curAcct);const d=o.ngay;
+  return {nmMst:a.mst,nmTen:a.ten,nmDchi:a.dchi,ngayKy:d?d+'T09:12:00':'',ngayCap:d&&o.kyhieu?.[0]==='C'?d+'T09:12:40':'',nguoiKy:o.ten,...o,...err};}
+const nextDay=d=>{const x=new Date(d+'T00:00:00Z');x.setUTCDate(x.getUTCDate()+1);return x.toISOString().slice(0,10);};
 function seed(){
-  S={seq:0,bravoSeq:7,ncc:{...NCC0},rules:RULES0.map(r=>({...r})),checked:{},invoices:[],emps:[],hist:[],congChuan:26,capBH:46800000,company:'Công ty TNHH ABC (demo)'};
+  S={seq:0,bravoSeq:7,ncc:{...NCC0},rules:RULES0.map(r=>({...r})),checked:{},invoices:[],emps:[],hist:[],congChuan:26,capBH:46800000,company:'Công ty TNHH ABC (demo)',
+    accounts:[{mst:'0300000000',ten:'Công ty TNHH ABC (demo)',dchi:'Số 12 Nguyễn Huệ, Phường Sài Gòn, TP Hồ Chí Minh'},
+              {mst:'0300000000-001',ten:'Chi nhánh Công ty TNHH ABC (demo) tại Bình Dương',dchi:'Lô B3, KCN Mỹ Phước, Phường Bến Cát, TP Hồ Chí Minh'}]};
+  S.curAcct=S.accounts[0].mst;
+  const M=(o,err)=>mk(withMeta(o,err));
   S.invoices=[
-    mk({kyhieu:'C26TMP',so:'10234',ngay:'2026-10-07',mst:'0312345678',ten:'Công ty TNHH Xăng dầu Minh Phát',lines:[L('Dầu diesel 0,05S-II','Lít',120,19800)],httt:'TM'}),
-    mk({kyhieu:'C26TMP',so:'10251',ngay:'2026-10-08',mst:'0312345678',ten:'Công ty TNHH Xăng dầu Minh Phát',lines:[L('Xăng RON 95-III','Lít',45,21900)],status:'duyet',httt:'TM'}),
-    mk({kyhieu:'C26TSG',so:'88012',ngay:'2026-10-01',mst:'0309876543',ten:'Công ty CP Viễn thông Sài Gòn Net',lines:[L('Cước internet cáp quang tháng 09/2026','Tháng',1,1250000),L('Cước di động trả sau – 6 thuê bao','Tháng',1,1830000)],status:'day',bravoNo:'MH-2610-0004',pdf:'ok'}),
-    mk({kyhieu:'C26THT',so:'2207',ngay:'2026-10-05',mst:'0315551234',ten:'Công ty TNHH Điện lạnh Hưng Thịnh',lines:[L('Ống đồng phi 9,52 dày 0,71mm','Mét',50,118000),L('Bảo ôn cách nhiệt phi 10','Mét',50,14500),L('Van chặn gas 3/8"','Cái',4,265000)],status:'duyet'}),
-    mk({kyhieu:'C26TAK',so:'5531',ngay:'2026-10-06',mst:'0301112223',ten:'Công ty TNHH Văn phòng phẩm An Khang',lines:[L('Giấy A4 70gsm','Ram',20,78000,8),L('Bút bi hộp 20 cây','Hộp',5,62000,8),L('Mực in laser 107A','Hộp',2,890000)]}),
-    mk({kyhieu:'C26MBT',so:'771',ngay:'2026-10-09',mst:'0318889990',ten:'Nhà hàng Bến Thành Xưa',lines:[L('Suất ăn tiếp khách – đoàn chủ đầu tư','Suất',8,385000,8)],source:'PDF',status:'kiemtra',note:'Đọc từ PDF có chữ – kiểm tra lại số tiền',httt:'TM'}),
-    mk({kyhieu:'C26TPM',so:'3390',ngay:'2026-10-09',mst:'0316667778',ten:'Công ty TNHH Vận tải Phú Mỹ',lines:[L('Cước vận chuyển thiết bị lên công trình Bình Dương','Chuyến',2,2400000,8)],status:'duyet'}),
-    mk({kyhieu:'C26TTL',so:'1186',ngay:'2026-10-10',mst:'0317773334',ten:'Công ty TNHH Cơ khí Tân Long',lines:[L('Gia công giá treo ống thép V50','Bộ',30,95000)]}),
-    mk({kyhieu:'C26THT',so:'2215',ngay:'2026-09-24',mst:'0315551234',ten:'Công ty TNHH Điện lạnh Hưng Thịnh',lines:[L('Ống gió tôn mạ kẽm 0,6mm','m²',36,215000)],status:'day',bravoNo:'MH-2610-0006',pdf:'ok'}),
-    mk({kyhieu:'C26TAK',so:'5390',ngay:'2026-09-18',mst:'0301112223',ten:'Công ty TNHH Văn phòng phẩm An Khang',lines:[L('Bìa hồ sơ, kẹp giấy','Bộ',40,18500,8)],status:'day',bravoNo:'MH-2609-0031',pdf:'ok'}),
+    M({kyhieu:'C26TMP',so:'10234',ngay:'2026-10-07',mst:'0312345678',ten:'Công ty TNHH Xăng dầu Minh Phát',lines:[L('Dầu diesel 0,05S-II','Lít',120,19800)],httt:'TM'},{ngayKy:'2026-10-08T07:40:00',ngayCap:'2026-10-08T07:40:30'}),
+    M({kyhieu:'C26TMP',so:'10251',ngay:'2026-10-08',mst:'0312345678',ten:'Công ty TNHH Xăng dầu Minh Phát',lines:[L('Xăng RON 95-III','Lít',45,21900)],status:'duyet',httt:'TM'}),
+    M({kyhieu:'C26TSG',so:'88012',ngay:'2026-10-01',mst:'0309876543',ten:'Công ty CP Viễn thông Sài Gòn Net',lines:[L('Cước internet cáp quang tháng 09/2026','Tháng',1,1250000),L('Cước di động trả sau – 6 thuê bao','Tháng',1,1830000)],status:'day',bravoNo:'MH-2610-0004',pdf:'ok'}),
+    M({kyhieu:'C26THT',so:'2207',ngay:'2026-10-05',mst:'0315551234',ten:'Công ty TNHH Điện lạnh Hưng Thịnh',lines:[L('Ống đồng phi 9,52 dày 0,71mm','Mét',50,118000),L('Bảo ôn cách nhiệt phi 10','Mét',50,14500),L('Van chặn gas 3/8"','Cái',4,265000)],status:'duyet'}),
+    M({kyhieu:'C26TAK',so:'5531',ngay:'2026-10-06',mst:'0301112223',ten:'Công ty TNHH Văn phòng phẩm An Khang',lines:[L('Giấy A4 70gsm','Ram',20,78000,8),L('Bút bi hộp 20 cây','Hộp',5,62000,8),L('Mực in laser 107A','Hộp',2,890000)]},{nmDchi:'Số 12 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP Hồ Chí Minh'}),
+    M({kyhieu:'C26MBT',so:'771',ngay:'2026-10-09',mst:'0318889990',ten:'Nhà hàng Bến Thành Xưa',lines:[L('Suất ăn tiếp khách – đoàn chủ đầu tư','Suất',8,385000,8)],source:'PDF',status:'kiemtra',note:'Đọc từ PDF có chữ – kiểm tra lại số tiền',httt:'TM'}),
+    M({kyhieu:'C26TPM',so:'3390',ngay:'2026-10-09',mst:'0316667778',ten:'Công ty TNHH Vận tải Phú Mỹ',lines:[L('Cước vận chuyển thiết bị lên công trình Bình Dương','Chuyến',2,2400000,8)],status:'duyet'},{nguoiKy:'Công ty TNHH Logistics Phú Mỹ Hưng'}),
+    M({kyhieu:'C26TTL',so:'1186',ngay:'2026-10-10',mst:'0317773334',ten:'Công ty TNHH Cơ khí Tân Long',lines:[L('Gia công giá treo ống thép V50','Bộ',30,95000)]},{nmTen:'Công ty TNHH ABD',nmMst:'0300000009'}),
+    M({kyhieu:'C26THT',so:'2215',ngay:'2026-09-24',mst:'0315551234',ten:'Công ty TNHH Điện lạnh Hưng Thịnh',lines:[L('Ống gió tôn mạ kẽm 0,6mm','m²',36,215000)],status:'day',bravoNo:'MH-2610-0006',pdf:'ok'}),
+    M({kyhieu:'C26TAK',so:'5390',ngay:'2026-09-18',mst:'0301112223',ten:'Công ty TNHH Văn phòng phẩm An Khang',lines:[L('Bìa hồ sơ, kẹp giấy','Bộ',40,18500,8)],status:'day',bravoNo:'MH-2609-0031',pdf:'ok'}),
     mk({kyhieu:'',so:'',ngay:'2026-10-12',mst:'',ten:'(Hóa đơn giấy – scan)',lines:[L('(chưa nhập)','',0,0)],source:'Scan',status:'kiemtra',note:'File scan không có lớp chữ – dùng "Đọc bằng AI" hoặc nhập tay'}),
+    // Chi nhánh Bình Dương
+    M({acct:'0300000000-001',kyhieu:'C26THT',so:'2241',ngay:'2026-10-13',mst:'0315551234',ten:'Công ty TNHH Điện lạnh Hưng Thịnh',lines:[L('Ống đồng phi 12,7 dày 0,81mm','Mét',80,152000)]}),
+    M({acct:'0300000000-001',kyhieu:'C26MXD',so:'55120',ngay:'2026-10-11',mst:'0318882221',ten:'Cửa hàng Xăng dầu Thuận Quang',lines:[L('Dầu diesel 0,001S-V','Lít',80,20100)],httt:'TM'},{nmDchi:'Lô B3, KCN Mỹ Phước, Thị xã Bến Cát, Bình Dương'}),
+    // Bán ra
+    M({loai:'ban',kyhieu:'C26TAB',so:'101',ngay:'2026-10-10',mst:'0300000000',ten:'Công ty TNHH ABC (demo)',lines:[L('Thi công lắp đặt hệ thống điều hòa – đợt 1','Gói',1,350000000,8)]},{nmMst:'0311223344',nmTen:'Công ty CP Đầu tư Nam Phát',nmDchi:'25 Lê Lợi, Phường Sài Gòn, TP Hồ Chí Minh',nguoiKy:'Công ty TNHH ABC (demo)'}),
+    M({loai:'ban',kyhieu:'C26TAB',so:'102',ngay:'2026-10-14',mst:'0300000000',ten:'Công ty TNHH ABC (demo)',lines:[L('Bảo trì hệ thống thông gió tháng 10','Gói',1,42000000,8)]},{nmMst:'0309988776',nmTen:'Công ty TNHH Dược phẩm Hòa Bình',nmDchi:'88 Nguyễn Văn Linh, Phường Tân Thuận, TP Hồ Chí Minh',nguoiKy:'Công ty TNHH ABC (demo)'}),
   ];
   S.invoices.forEach(autoMap);
   S.emps=[
@@ -77,10 +91,47 @@ const STORE='cong-tra-cuu-hoa-don-v1';
 function persist(){if(window.Cloud?.enabled){if(Cloud.user)Cloud.save(S);return;}try{localStorage.setItem(STORE,JSON.stringify(S));}catch(e){}}
 function load(){try{const s=JSON.parse(localStorage.getItem(STORE)||'null');if(s&&s.invoices){S=s;return true;}}catch(e){}return false;}
 
-/* ---------- Nghiệp vụ hóa đơn ---------- */
-const keyOf=i=>`${i.mst}|${i.kyhieu}|${i.so}`;
+/* ---------- Tài khoản thuế (nhiều MST trong một công ty) ---------- */
+const acctOf=m=>(S.accounts||[]).find(a=>a.mst===m)||(S.accounts||[])[0]||{mst:'',ten:S.company||'',dchi:''};
+let curLoai='mua';
+try{curLoai=localStorage.getItem('cthd-loai')||'mua';}catch(e){}
+/* Hóa đơn thuộc tài khoản + loại (mua vào / bán ra) đang chọn */
+const INV=(loai=curLoai)=>S.invoices.filter(i=>(i.acct||S.accounts?.[0]?.mst)===S.curAcct&&(i.loai||'mua')===loai);
+/* Đối tác hiển thị: mua vào → người bán; bán ra → người mua */
+const party=i=>(i.loai||'mua')==='ban'?{ten:i.nmTen||'',mst:i.nmMst||''}:{ten:i.ten,mst:i.mst};
+/* Ký hiệu: ký tự 1 = C (có mã) / K (không mã); ký tự 4 = M (máy tính tiền) */
+const codeOf=i=>!i.kyhieu?'':i.kyhieu[3]==='M'?'M':i.kyhieu[0]==='K'?'K':'C';
+/* Migrate dữ liệu cũ (trước khi có nhiều tài khoản) */
+function migrate(){
+  if(!S.accounts?.length)S.accounts=[{mst:'0300000000',ten:S.company||'Công ty của tôi',dchi:''}];
+  if(!S.accounts.some(a=>a.mst===S.curAcct))S.curAcct=S.accounts[0].mst;
+  S.invoices.forEach(i=>{if(!i.acct)i.acct=S.accounts[0].mst;if(!i.loai)i.loai='mua';});
+}
+
+/* ---------- Kiểm tra tính hợp lệ của hóa đơn ---------- */
+const norm=t=>String(t||'').normalize('NFC').toLowerCase().replace(/\bcty\b/g,'công ty').replace(/\btnhh\b/g,'trách nhiệm hữu hạn').replace(/\btp\.?\s*hcm\b/g,'tp hồ chí minh').replace(/\btp\.?\s/g,'thành phố ').replace(/[.,;:()"'“”\-–]/g,' ').replace(/\s+/g,' ').trim();
+const CHECKS=[
+  ['nlk','Ngày lập ≠ Ngày ký','warn'],
+  ['nlc','Ngày lập ≠ Ngày cấp mã','warn'],
+  ['nky','Tên người ký ≠ Tên người bán','warn'],
+  ['mstr','MST người bán rủi ro','bad'],
+  ['nmmst','MST người mua sai','bad'],
+  ['nmten','Tên người mua sai','bad'],
+  ['nmdc','Địa chỉ người mua sai','warn']];
+const CHK=Object.fromEntries(CHECKS.map(c=>[c[0],c]));
+/* Trả về danh sách lỗi: {k, dung (giá trị đúng), tren (giá trị trên hóa đơn)}. Chỉ kiểm tra hóa đơn mua vào; thiếu dữ liệu thì bỏ qua. */
+function checks(inv){const o=[];if((inv.loai||'mua')!=='mua'||!inv.mst)return o;const a=acctOf(inv.acct);
+  if(inv.ngayKy&&inv.ngay&&inv.ngayKy.slice(0,10)!==inv.ngay)o.push({k:'nlk',dung:dmy(inv.ngay),tren:dmy(inv.ngayKy.slice(0,10))});
+  if(inv.ngayCap&&inv.ngay&&inv.ngayCap.slice(0,10)!==inv.ngay)o.push({k:'nlc',dung:dmy(inv.ngay),tren:dmy(inv.ngayCap.slice(0,10))});
+  if(inv.nguoiKy&&inv.ten&&norm(inv.nguoiKy)!==norm(inv.ten))o.push({k:'nky',dung:inv.ten,tren:inv.nguoiKy});
+  const r=riskOf(inv.mst);if(r&&r[1]==='bad')o.push({k:'mstr',dung:'Đang hoạt động',tren:r[0]});
+  if(inv.nmMst&&a.mst&&inv.nmMst.replace(/\s/g,'')!==a.mst)o.push({k:'nmmst',dung:a.mst,tren:inv.nmMst});
+  if(inv.nmTen&&a.ten&&norm(inv.nmTen)!==norm(a.ten))o.push({k:'nmten',dung:a.ten,tren:inv.nmTen});
+  if(inv.nmDchi&&a.dchi&&norm(inv.nmDchi)!==norm(a.dchi))o.push({k:'nmdc',dung:a.dchi,tren:inv.nmDchi});
+  return o;}
+const keyOf=i=>`${i.acct||''}|${i.mst}|${i.kyhieu}|${i.so}`;
 function autoMap(inv){inv.lines.forEach(l=>{if(l.tk)return;const n=l.ten.toLowerCase();const r=S.rules.find(r=>r.kw.split('|').map(s=>s.trim()).filter(Boolean).some(k=>n.includes(k.toLowerCase())));if(r){l.tk=r.tk;l.km=r.km;}});}
-function issues(inv){const o=[];if(!inv.mst||!inv.kyhieu||!inv.so)o.push('Thiếu MST/ký hiệu/số');if(inv.mst&&!S.ncc[inv.mst])o.push('NCC chưa có mã Bravo');const m=inv.lines.filter(l=>!l.tk).length;if(m)o.push(`${m} dòng chưa có TK`);return o;}
+function issues(inv){const o=[];if(!inv.mst||!inv.kyhieu||!inv.so)o.push('Thiếu MST/ký hiệu/số');{const pm=party(inv).mst;if(pm&&!S.ncc[pm])o.push((inv.loai||'mua')==='ban'?'Khách hàng chưa có mã Bravo':'NCC chưa có mã Bravo');}const m=inv.lines.filter(l=>!l.tk).length;if(m)o.push(`${m} dòng chưa có TK`);return o;}
 function riskOf(mst){if(!S.checked[mst])return null;return RISK_DB[mst]||['Đang hoạt động','ok'];}
 function dedErr(inv){const o=[];const r=riskOf(inv.mst);if(r&&r[1]==='bad')o.push('NCC '+r[0].toLowerCase());if(inv.tong>=5000000&&inv.httt==='TM')o.push('Thanh toán tiền mặt từ 5 triệu');return o;}
 const STATUS={moi:['moi','Mới'],kiemtra:['kiemtra','Cần kiểm tra'],duyet:['duyet','Đã duyệt'],day:['day','Đã vào Bravo'],loi:['loi','Lỗi Bravo']};
@@ -95,7 +146,16 @@ function parseXml(text){
   if(!ttc||!nb)throw new Error('Không thấy cấu trúc hóa đơn (TTChung/NBan)');
   const lines=[...doc.getElementsByTagName('HHDVu')].map(h=>{const ts=parseFloat((g(h,'TSuat')||'0').replace('%',''))||0;const sl=+g(h,'SLuong')||0,dg=+g(h,'DGia')||0;let tt=+g(h,'ThTien');if(!tt)tt=Math.round(sl*dg);return {ten:g(h,'THHDVu'),dvt:g(h,'DVTinh'),sl,dg,tt,ts};});
   const ht=g(ttc,'HTTToan').toLowerCase();
-  const inv=mk({khms:g(ttc,'KHMSHDon')||'1',kyhieu:g(ttc,'KHHDon'),so:g(ttc,'SHDon'),ngay:g(ttc,'NLap').slice(0,10),mst:g(nb,'MST'),ten:g(nb,'Ten'),lines,source:'XML',httt:(ht.includes('tiền mặt')||ht==='tm')?'TM':'CK',mccqt:g(doc,'MCCQT')});
+  const nm=doc.getElementsByTagName('NMua')[0];
+  // Chữ ký số: DSCKS > NBan (người bán ký), DSCKS > CQT (cơ quan thuế cấp mã)
+  const ds=doc.getElementsByTagName('DSCKS')[0];const sig=tag=>ds?[...ds.children].find(c=>c.tagName===tag):null;
+  const sNB=sig('NBan'),sCQT=sig('CQT');
+  const cn=el=>{const t=el?g(el,'X509SubjectName'):'';const m=t.match(/CN=([^,]+)/);return m?m[1].trim():'';};
+  const mstNB=g(nb,'MST');
+  const inv=mk({khms:g(ttc,'KHMSHDon')||'1',kyhieu:g(ttc,'KHHDon'),so:g(ttc,'SHDon'),ngay:g(ttc,'NLap').slice(0,10),mst:mstNB,ten:g(nb,'Ten'),lines,source:'XML',httt:(ht.includes('tiền mặt')||ht==='tm')?'TM':'CK',mccqt:g(doc,'MCCQT'),
+    loai:mstNB&&mstNB===S.curAcct?'ban':'mua',
+    nmMst:nm?g(nm,'MST'):'',nmTen:nm?g(nm,'Ten'):'',nmDchi:nm?g(nm,'DChi'):'',
+    ngayKy:sNB?g(sNB,'SigningTime'):'',ngayCap:sCQT?g(sCQT,'SigningTime'):'',nguoiKy:cn(sNB)});
   const tong=+g(doc,'TgTTTBSo');if(tong&&Math.abs(tong-inv.tong)>2){inv.status='kiemtra';inv.note=`Tổng trên XML (${fmt(tong)}) khác tổng cộng dòng (${fmt(inv.tong)})`;}
   return inv;}
 /* XML — sinh lại từ dữ liệu (dùng cho tải hàng loạt) */
@@ -106,7 +166,7 @@ function invToXml(i){const x=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;',
     <TTChung><PBan>2.0.1</PBan><THDon>Hóa đơn giá trị gia tăng</THDon><KHMSHDon>${x(i.khms)}</KHMSHDon><KHHDon>${x(i.kyhieu)}</KHHDon><SHDon>${x(i.so)}</SHDon><NLap>${x(i.ngay)}</NLap><DVTien>VND</DVTien><HTTToan>${i.httt==='TM'?'Tiền mặt':'Chuyển khoản'}</HTTToan></TTChung>
     <NDHDon>
       <NBan><Ten>${x(i.ten)}</Ten><MST>${x(i.mst)}</MST></NBan>
-      <NMua><Ten>${x(S.company)}</Ten></NMua>
+      <NMua><Ten>${x(i.nmTen||acctOf(i.acct).ten)}</Ten><MST>${x(i.nmMst||'')}</MST><DChi>${x(i.nmDchi||'')}</DChi></NMua>
       <DSHHDVu>
 ${i.lines.map((l,k)=>`        <HHDVu><STT>${k+1}</STT><THHDVu>${x(l.ten)}</THHDVu><DVTinh>${x(l.dvt)}</DVTinh><SLuong>${l.sl}</SLuong><DGia>${l.dg}</DGia><ThTien>${l.tt}</ThTien><TSuat>${l.ts}%</TSuat></HHDVu>`).join('\n')}
       </DSHHDVu>
@@ -114,6 +174,10 @@ ${i.lines.map((l,k)=>`        <HHDVu><STT>${k+1}</STT><THHDVu>${x(l.ten)}</THHDV
     </NDHDon>
   </DLHDon>
   <MCCQT>${x(i.mccqt||'')}</MCCQT>
+  <DSCKS>
+    <NBan><Signature><KeyInfo><X509Data><X509SubjectName>CN=${x(i.nguoiKy||i.ten)}</X509SubjectName></X509Data></KeyInfo><Object><SignatureProperties><SignatureProperty><SigningTime>${x(i.ngayKy||'')}</SigningTime></SignatureProperty></SignatureProperties></Object></Signature></NBan>
+    ${i.ngayCap?`<CQT><Signature><Object><SignatureProperties><SignatureProperty><SigningTime>${x(i.ngayCap)}</SigningTime></SignatureProperty></SignatureProperties></Object></Signature></CQT>`:''}
+  </DSCKS>
 </HDon>`;}
 /* Bản thể hiện (HTML in được ra PDF) */
 function invToHtml(i){return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${esc(i.kyhieu)}-${esc(i.so)}</title><style>body{font-family:"Times New Roman",serif;max-width:800px;margin:30px auto;padding:30px;border:3px double #7a4b1e;color:#222}h1{text-align:center;color:#7a4b1e;margin:0;font-size:22px}.c{text-align:center}table{width:100%;border-collapse:collapse;margin-top:14px}td,th{border:1px solid #999;padding:5px 7px;font-size:13px}.r{text-align:right}.meta{display:flex;justify-content:space-between;font-size:13px;margin:10px 0}</style></head><body>
@@ -216,7 +280,7 @@ Vật tư đúng chủng loại, đủ số lượng, không hư hỏng. Hai bê
 **NGƯỜI LAO ĐỘNG                                    ĐẠI DIỆN CÔNG TY`}};
 let docState={tpl:'bbdc',tsv:''};
 function tplData(k){const t=TPLS[k];
-  if(t.from==='ncc'){const m=new Map();S.invoices.filter(i=>i.mst).forEach(i=>{const o=m.get(i.mst)||{ten:i.ten,n:0,s:0};o.n++;o.s+=i.tong;m.set(i.mst,o);});
+  if(t.from==='ncc'){const m=new Map();INV('mua').filter(i=>i.mst).forEach(i=>{const o=m.get(i.mst)||{ten:i.ten,n:0,s:0};o.n++;o.s+=i.tong;m.set(i.mst,o);});
     return [t.fields,...[...m.entries()].map(([mst,o])=>[o.ten,mst,o.n,fmt(o.s),'31/10/2026'])];}
   if(t.from==='emps')return [t.fields,...S.emps.map(e=>[e.ten,e.ma,e.bp,'Nhân viên',`01/11/2026`,fmt(e.lcb*0.85)])];
   return [t.fields,['GN-001','15/10/2026','Công ty TNHH Điện lạnh Hưng Thịnh','Nhà xưởng Bình Dương','Ống đồng phi 9,52','50 mét'],['GN-002','16/10/2026','Công ty TNHH Cơ khí Tân Long','Nhà xưởng Bình Dương','Giá treo ống V50','30 bộ']];}
@@ -237,7 +301,7 @@ async function docxBytes(docs){
 
 /* ============================================================ VIEWS ============================================================ */
 const NAV=[
- ['Hóa đơn',[['hd','Danh sách hóa đơn'],['batch','Tải hàng loạt','sim'],['bk','Bảng kê'],['risk','Rủi ro NCC','sim']]],
+ ['Hóa đơn',[['hd','Danh sách hóa đơn'],['check','Kiểm tra hóa đơn'],['batch','Tải hàng loạt','sim'],['bk','Bảng kê'],['risk','Rủi ro NCC','sim']]],
  ['Kế toán',[['map','Ghép mã & hạch toán'],['bravo','Đẩy sang Bravo','sim'],['tk','Tờ khai & phụ lục']]],
  ['Công cụ',[['merge','Gộp file'],['ocr','Ảnh/PDF → Excel','ai'],['docs','Văn bản hàng loạt']]],
  ['Nhân sự',[['pay','Bảng lương']]],
@@ -245,33 +309,91 @@ const NAV=[
 let route='hd';
 function renderNav(){
   $('#nav').innerHTML=`<div class="brand"><div class="mark">HĐ</div><div><h1>Cổng tra cứu hóa đơn</h1><small>${window.Cloud?.user?esc(Cloud.user.email||Cloud.user.displayName||"Đã đăng nhập")+' · <a href="#" data-act="signOut">Đăng xuất</a> <span id="sync-st"></span>':'Chế độ thử · lưu trong trình duyệt'}</small></div></div>`+
-  NAV.map(([g,items])=>`<div class="grp">${g}</div>`+items.map(([k,l,t])=>`<button data-go="${k}" ${route===k?'aria-current="page"':''}>${l}${t?`<span class="tag ${t}">${t==='sim'?'mô phỏng':'AI'}</span>`:k==='hd'?`<span class="tag">${S.invoices.length}</span>`:''}</button>`).join('')).join('');}
+  NAV.map(([g,items])=>`<div class="grp">${g}</div>`+items.map(([k,l,t])=>`<button data-go="${k}" ${route===k?'aria-current="page"':''}>${l}${t?`<span class="tag ${t}">${t==='sim'?'mô phỏng':'AI'}</span>`:k==='hd'?`<span class="tag">${INV().length}</span>`:k==='check'&&INV('mua').some(i=>checks(i).length)?`<span class="tag sim">${INV('mua').filter(i=>checks(i).length).length}</span>`:''}</button>`).join('')).join('');}
 function go(k){route=k;renderNav();render();try{localStorage.setItem(STORE+'-route',k);}catch(e){}window.scrollTo(0,0);}
-function render(){$('#main').innerHTML=VIEWS[route]();AFTER[route]?.();persist();}
+const SCOPED=['hd','check','batch','bk','risk','map','bravo','tk'];
+function render(){$('#main').innerHTML=(SCOPED.includes(route)?acctBar():'')+VIEWS[route]();AFTER[route]?.();persist();}
+/* Thanh chọn tài khoản thuế + mua vào / bán ra */
+function acctBar(){const a=acctOf(S.curAcct);
+  return `<div class="acctbar"><label class="lbl" for="acct">Tài khoản thuế</label>
+   <select id="acct">${S.accounts.map(x=>`<option value="${esc(x.mst)}" ${x.mst===S.curAcct?'selected':''}>${esc(x.mst)} · ${esc(x.ten)}</option>`).join('')}</select>
+   <button class="btn sm" data-act="acctEdit">Sửa</button><button class="btn sm" data-act="acctAdd">+ Thêm tài khoản</button>
+   ${['check','tk'].includes(route)?'':`<div class="seg"><button data-loai="mua" aria-pressed="${curLoai==='mua'}">Mua vào</button><button data-loai="ban" aria-pressed="${curLoai==='ban'}">Bán ra</button></div>`}
+   ${a.dchi?'':'<span class="pill warn">Chưa có địa chỉ – bấm Sửa để kiểm tra địa chỉ người mua</span>'}</div>`;}
+function acctModal(edit){const a=edit?acctOf(S.curAcct):{mst:'',ten:'',dchi:''};
+  $('#overlay').innerHTML=`<div class="modal" data-closebg><div class="box" role="dialog" aria-label="Tài khoản thuế" style="width:min(520px,100%)"><header><h2>${edit?'Sửa tài khoản thuế':'Thêm tài khoản thuế'}</h2><button class="x" data-close aria-label="Đóng">×</button></header>
+   <div class="stack" style="padding:16px;gap:10px">
+    <div class="field"><label for="a-mst">Mã số thuế</label><input id="a-mst" value="${esc(a.mst)}" ${edit?'disabled':''} placeholder="VD: 0312345678 hoặc 0312345678-001"></div>
+    <div class="field"><label for="a-ten">Tên đăng ký</label><input id="a-ten" value="${esc(a.ten)}"></div>
+    <div class="field"><label for="a-dchi">Địa chỉ đăng ký (dùng để kiểm tra địa chỉ người mua trên hóa đơn)</label><input id="a-dchi" value="${esc(a.dchi)}"></div>
+    <div class="sub">Tên và địa chỉ phải khớp đúng đăng ký thuế. Sau sắp xếp đơn vị hành chính, nhớ cập nhật địa chỉ mới.</div></div>
+   <footer>${edit&&S.accounts.length>1?`<button class="btn" data-act="acctDel" style="margin-right:auto">Xóa tài khoản</button>`:''}<button class="btn" data-close>Hủy</button><button class="btn primary" data-act="acctSave" data-edit="${edit?1:0}">Lưu</button></footer></div></div>`;}
 const head=(t,p,act='')=>`<div class="vhead"><div><h2>${t}</h2><p>${p}</p></div>${act?`<div class="act">${act}</div>`:''}</div>`;
 const AFTER={};
 
 /* ----- Danh sách hóa đơn ----- */
-let filt={status:'',q:'',src:''};
-function rowsHtml(){const q=filt.q.toLowerCase();
-  const list=S.invoices.filter(i=>(!filt.status||i.status===filt.status)&&(!filt.src||i.source===filt.src)&&(!q||`${i.ten} ${i.mst} ${i.so} ${i.kyhieu}`.toLowerCase().includes(q)));
-  return list.length?list.map(i=>{const iss=i.status==='day'?[]:issues(i);const r=riskOf(i.mst);const de=dedErr(i);return `<tr class="click" data-open="${i.id}">
-   <td><div class="mono">${esc(i.kyhieu)||'—'}</div><div class="sub mono">Số ${esc(i.so)||'—'}</div></td><td class="mono">${dmy(i.ngay)}</td>
-   <td style="min-width:220px">${esc(i.ten)}<div class="sub mono">${esc(i.mst)||'Chưa có MST'}${r&&r[1]!=='ok'?` · <span style="color:var(--${r[1]==='bad'?'bad':'warn'})">${esc(r[0])}</span>`:''}${iss.length?` · <span style="color:var(--bad)">${esc(iss[0])}</span>`:''}${de.length?` · <span style="color:var(--warn)">${esc(de[0])}</span>`:''}</div></td>
+const F0={status:'',q:'',src:'',code:'',pdf:'',xml:'',kh:'',so:'',ten:'',mst:'',chk:'',from:'',to:''};
+let filt={...F0};
+const FLABEL={src:'Nguồn',code:'Loại',pdf:'PDF gốc',xml:'XML',kh:'Ký hiệu',so:'Số HĐ',ten:'Tên',mst:'MST',chk:'Kiểm tra',from:'Từ ngày',to:'Đến ngày'};
+const CODE={C:'Có mã',K:'Không mã',M:'Máy tính tiền'};
+function filtered(useStatus=true){const q=filt.q.toLowerCase(),f=filt;
+  return INV().filter(i=>{const p=party(i);
+    if(useStatus&&f.status&&i.status!==f.status)return false;
+    if(f.src&&i.source!==f.src)return false;
+    if(f.code&&codeOf(i)!==f.code)return false;
+    if(f.pdf&&(f.pdf==='co')!==(i.pdf==='ok'))return false;
+    if(f.xml&&(f.xml==='co')!==(i.source==='XML'))return false;
+    if(f.kh&&!String(i.kyhieu).toUpperCase().includes(f.kh.toUpperCase()))return false;
+    if(f.so&&String(i.so)!==f.so.replace(/^0+/,''))return false;
+    if(f.ten&&!norm(p.ten).includes(norm(f.ten)))return false;
+    if(f.mst&&!String(p.mst).includes(f.mst.trim()))return false;
+    if(f.from&&(!i.ngay||i.ngay<f.from))return false;
+    if(f.to&&(!i.ngay||i.ngay>f.to))return false;
+    if(f.chk){const c=checks(i);if(f.chk==='loi'&&!c.length)return false;if(f.chk==='ok'&&c.length)return false;if(CHK[f.chk]&&!c.some(x=>x.k===f.chk))return false;}
+    if(q&&!`${p.ten} ${p.mst} ${i.so} ${i.kyhieu}`.toLowerCase().includes(q))return false;
+    return true;});}
+function filterChips(){const on=Object.keys(FLABEL).filter(k=>filt[k]);if(!on.length)return '';
+  const v=k=>k==='code'?CODE[filt[k]]:k==='pdf'||k==='xml'?(filt[k]==='co'?'Đã có':'Chưa có'):k==='chk'?(filt[k]==='loi'?'Có lỗi':filt[k]==='ok'?'Không lỗi':CHK[filt[k]][1]):k==='from'||k==='to'?dmy(filt[k]):filt[k];
+  return `<div class="chips">${on.map(k=>`<span class="chip">${FLABEL[k]}: <b>${esc(v(k))}</b><button data-unf="${k}" aria-label="Bỏ lọc ${FLABEL[k]}">×</button></span>`).join('')}<button class="btn sm" data-act="fClear">Bỏ lọc</button></div>`;}
+function rowsHtml(){const list=filtered();
+  return list.length?list.map(i=>{const iss=i.status==='day'?[]:issues(i);const r=riskOf(i.mst);const de=dedErr(i);const ck=checks(i);const p=party(i);return `<tr class="click" data-open="${i.id}">
+   <td><div class="mono">${esc(i.kyhieu)||'—'}</div><div class="sub mono">Số ${esc(i.so)||'—'}${codeOf(i)?` · ${codeOf(i)==='M'?'MTT':codeOf(i)==='K'?'K.mã':'Có mã'}`:''}</div></td><td class="mono">${dmy(i.ngay)}</td>
+   <td style="min-width:220px">${esc(p.ten)}${ck.length?` <span class="pill ${ck.some(c=>CHK[c.k][2]==='bad')?'bad':'warn'}" title="${esc(ck.map(c=>CHK[c.k][1]).join(', '))}">${ck.length} lỗi kiểm tra</span>`:''}<div class="sub mono">${esc(p.mst)||'Chưa có MST'}${r&&r[1]!=='ok'?` · <span style="color:var(--${r[1]==='bad'?'bad':'warn'})">${esc(r[0])}</span>`:''}${iss.length?` · <span style="color:var(--bad)">${esc(iss[0])}</span>`:''}${de.length?` · <span style="color:var(--warn)">${esc(de[0])}</span>`:''}</div></td>
    <td class="num">${fmt(i.truoc)}</td><td class="num">${fmt(i.thue)}</td><td class="num"><b>${fmt(i.tong)}</b></td>
    <td><span class="src">${i.source}</span> ${i.pdf==='ok'?'<span class="src" title="Đã có PDF gốc">PDF</span>':''}</td><td>${pill(i.status)}${i.bravoNo?`<div class="sub mono">${i.bravoNo}</div>`:''}</td></tr>`;}).join('')
   :`<tr><td colspan="8" class="empty">Không có hóa đơn nào khớp bộ lọc.</td></tr>`;}
 const VIEWS={};
-VIEWS.hd=()=>{const c=s=>S.invoices.filter(i=>i.status===s).length;
-  const st=[['','Tất cả',S.invoices.length,'var(--muted)'],['moi','Mới',c('moi'),'var(--info)'],['kiemtra','Cần kiểm tra',c('kiemtra'),'var(--warn)'],['duyet','Đã duyệt',c('duyet'),'var(--ink)'],['day','Đã vào Bravo',c('day'),'var(--ok)']];
-  return head('Danh sách hóa đơn đầu vào','Gom hóa đơn từ cơ quan thuế, file XML, PDF hoặc ảnh scan. Không giới hạn số lượng; hóa đơn trùng (cùng MST, ký hiệu, số) tự bỏ qua.',
-   `<button class="btn" data-act="sync">Đồng bộ từ cơ quan thuế</button><button class="btn" data-act="approveAll">Duyệt hóa đơn đủ mã</button>`)+
+VIEWS.hd=()=>{const base=filtered(false);const c=st=>base.filter(i=>i.status===st).length;const ban=curLoai==='ban';
+  const list=filtered();const sum=f=>list.reduce((t,i)=>t+f(i),0);const cc=k=>list.filter(i=>codeOf(i)===k).length;
+  const st=[['','Tất cả',base.length,'var(--muted)'],['moi','Mới',c('moi'),'var(--info)'],['kiemtra','Cần kiểm tra',c('kiemtra'),'var(--warn)'],['duyet','Đã duyệt',c('duyet'),'var(--ink)'],['day','Đã vào Bravo',c('day'),'var(--ok)']];
+  return head(ban?'Hóa đơn bán ra':'Danh sách hóa đơn đầu vào',ban?'Hóa đơn công ty xuất cho khách hàng. Dùng cho phần bán ra của tờ khai và đối chiếu doanh thu.':'Gom hóa đơn từ cơ quan thuế, file XML, PDF hoặc ảnh scan. Không giới hạn số lượng; hóa đơn trùng (cùng MST, ký hiệu, số) tự bỏ qua.',
+   `${ban?'':'<button class="btn" data-act="sync">Đồng bộ từ cơ quan thuế</button>'}<button class="btn" data-act="approveAll">Duyệt hóa đơn đủ mã</button>`)+
   `<div id="syncbox"></div><div class="stats">${st.map(([k,l,n,col])=>`<button class="stat" data-st="${k}" aria-pressed="${filt.status===k}"><div class="l"><span class="dot" style="background:${col}"></span>${l}</div><div class="n">${n}</div></button>`).join('')}</div>
-  <label class="drop" id="drop" for="file"><div class="txt"><b>Kéo thả file hóa đơn vào đây</b><span>XML (chính xác nhất) · PDF có chữ (đọc tự động) · PDF scan/ảnh (đọc bằng AI trong ngăn chi tiết)</span></div>
+  <label class="drop" id="drop" for="file"><div class="txt"><b>Kéo thả file hóa đơn vào đây</b><span>XML (chính xác nhất) · PDF có chữ (đọc tự động) · PDF scan/ảnh (đọc bằng AI trong ngăn chi tiết). File XML có MST người bán trùng tài khoản đang chọn sẽ vào mục Bán ra.</span></div>
    <input type="file" id="file" multiple accept=".xml,.pdf,.png,.jpg,.jpeg,.webp" hidden><span class="btn primary">Chọn file</span><button type="button" class="btn" data-act="xmlModal">Dán XML mẫu</button></label>
-  <div class="toolbar"><input type="search" id="q" placeholder="Tìm người bán, MST, số hóa đơn…" value="${esc(filt.q)}">
-   <select id="f-src"><option value="">Mọi nguồn</option>${['XML','PDF','Scan','AI'].map(s=>`<option ${filt.src===s?'selected':''}>${s}</option>`).join('')}</select></div>
-  <div class="panel"><div class="scroll"><table><thead><tr><th>Ký hiệu / Số</th><th>Ngày</th><th>Người bán</th><th class="num">Trước thuế</th><th class="num">Thuế</th><th class="num">Tổng cộng</th><th>Nguồn</th><th>Trạng thái</th></tr></thead><tbody id="rows">${rowsHtml()}</tbody></table></div></div>`;};
+  <div class="toolbar"><input type="search" id="q" placeholder="Tìm ${ban?'người mua':'người bán'}, MST, số hóa đơn…" value="${esc(filt.q)}">
+   <button class="btn" data-act="filters">Bộ lọc${Object.keys(FLABEL).filter(k=>filt[k]).length?` (${Object.keys(FLABEL).filter(k=>filt[k]).length})`:''}</button></div>
+  ${filterChips()}
+  <div class="sumbar" id="sumbar">${sumbarHtml(list)}</div>
+  <div class="panel"><div class="scroll"><table><thead><tr><th>Ký hiệu / Số</th><th>Ngày</th><th>${ban?'Người mua':'Người bán'}</th><th class="num">Trước thuế</th><th class="num">Thuế</th><th class="num">Tổng cộng</th><th>Nguồn</th><th>Trạng thái</th></tr></thead><tbody id="rows">${rowsHtml()}</tbody></table></div></div>`;};
+function sumbarHtml(list){const sum=f=>list.reduce((t,i)=>t+f(i),0);const cc=k=>list.filter(i=>codeOf(i)===k).length;
+  return `<span>Tổng <b>${list.length}</b></span><span>Có mã <b>${cc('C')}</b></span><span>Không mã <b>${cc('K')}</b></span><span>Máy tính tiền <b>${cc('M')}</b></span>
+   <span class="sp"></span><span>Chưa thuế <b class="mono">${fmt(sum(i=>i.truoc))}</b></span><span>Tiền thuế <b class="mono">${fmt(sum(i=>i.thue))}</b></span><span>Thanh toán <b class="mono">${fmt(sum(i=>i.tong))}</b></span>`;}
+function filterPanel(){const f=filt;const opt=(id,cur,arr)=>`<select id="${id}">${arr.map(([v,l])=>`<option value="${v}" ${cur===v?'selected':''}>${l}</option>`).join('')}</select>`;
+  $('#overlay').innerHTML=`<div class="scrim" data-close></div><aside class="drawer" role="dialog" aria-label="Bộ lọc" style="width:min(420px,100%)">
+   <header><h2 style="flex:1">Bộ lọc</h2><button class="x" data-close aria-label="Đóng">×</button></header>
+   <div class="body">
+    <div class="grid2"><div class="field"><label for="ff-from">Từ ngày</label><input type="date" id="ff-from" value="${f.from}"></div><div class="field"><label for="ff-to">Đến ngày</label><input type="date" id="ff-to" value="${f.to}"></div></div>
+    <div class="grid2"><div class="field"><label for="ff-pdf">PDF gốc</label>${opt('ff-pdf',f.pdf,[['','Tất cả'],['co','Đã có'],['khong','Chưa có']])}</div>
+     <div class="field"><label for="ff-xml">File XML</label>${opt('ff-xml',f.xml,[['','Tất cả'],['co','Đã có'],['khong','Chưa có']])}</div></div>
+    <div class="grid2"><div class="field"><label for="ff-code">Loại hóa đơn</label>${opt('ff-code',f.code,[['','Tất cả'],['C','Có mã'],['K','Không mã'],['M','Máy tính tiền']])}</div>
+     <div class="field"><label for="ff-src">Nguồn</label>${opt('ff-src',f.src,[['','Tất cả'],['XML','XML'],['PDF','PDF'],['Scan','Scan'],['AI','AI']])}</div></div>
+    <div class="grid2"><div class="field"><label for="ff-kh">Ký hiệu</label><input id="ff-kh" value="${esc(f.kh)}" placeholder="C26TAA"></div><div class="field"><label for="ff-so">Số hóa đơn</label><input id="ff-so" value="${esc(f.so)}"></div></div>
+    <div class="field"><label for="ff-ten">Tên ${curLoai==='ban'?'người mua':'người bán'}</label><input id="ff-ten" value="${esc(f.ten)}"></div>
+    <div class="field"><label for="ff-mst">MST ${curLoai==='ban'?'người mua':'người bán'}</label><input id="ff-mst" value="${esc(f.mst)}"></div>
+    <div class="field"><label for="ff-chk">Kết quả kiểm tra</label>${opt('ff-chk',f.chk,[['','Tất cả'],['loi','Có lỗi'],['ok','Không lỗi'],...CHECKS.map(c=>[c[0],c[1]])])}</div>
+   </div>
+   <footer><button class="btn" data-act="fClear">Xóa lọc</button><button class="btn primary" data-act="fApply">Áp dụng</button></footer></aside>`;}
 AFTER.hd=()=>{const d=$('#drop');['dragenter','dragover'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.add('over');}));['dragleave','drop'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.remove('over');}));d.addEventListener('drop',e=>handleFiles([...e.dataTransfer.files]));};
 async function handleFiles(files){let add=0,dup=0,err=[];
   for(const f of files){try{let inv;const n=f.name.toLowerCase();
@@ -289,10 +411,10 @@ const SYNC_POOL=[
   {kyhieu:'C26TAN',so:'612',ngay:'2026-10-10',mst:'0312223334',ten:'Công ty TNHH Thiết bị điện An Nhiên',lines:[L('Dây cáp điện CV 2,5mm²','Cuộn',6,1450000,8),L('Aptomat MCB 2P 32A','Cái',10,210000,8)],httt:'TM'},
   {kyhieu:'C26TBM',so:'1043',ngay:'2026-10-08',mst:'0319994445',ten:'Công ty TNHH Bảo trì Minh Khang',lines:[L('Bảo trì hệ thống điều hòa trung tâm quý 4','Gói',1,12500000,8)]},
   {kyhieu:'C26THT',so:'2230',ngay:'2026-10-14',mst:'0315551234',ten:'Công ty TNHH Điện lạnh Hưng Thịnh',lines:[L('Dàn lạnh âm trần cassette 2HP','Bộ',2,14800000)]}];
-async function doSync(){const box=$('#syncbox');const todo=SYNC_POOL.filter(p=>!S.invoices.some(x=>keyOf(x)===keyOf(p)));
+async function doSync(){const box=$('#syncbox');const todo=SYNC_POOL.filter(p=>!S.invoices.some(x=>keyOf(x)===keyOf({...p,acct:S.curAcct})));
   box.innerHTML=`<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>Đồng bộ hóa đơn mua vào từ cơ quan thuế (mô phỏng)</b><span class="sub mono" id="sy-t">0/${todo.length||0}</span></div><div class="progress" style="margin:8px 0"><i id="sy-p"></i></div><div class="sub">Bản thật: dùng tài khoản tra cứu hóa đơn của doanh nghiệp, chạy nền định kỳ, lấy cả XML gốc có mã cơ quan thuế.</div></div>`;
   if(!todo.length){await sleep(500);box.innerHTML='';toast('Không có hóa đơn mới trên cơ quan thuế');return;}
-  for(let k=0;k<todo.length;k++){await sleep(350);const inv=mk({...JSON.parse(JSON.stringify(todo[k])),source:'XML',mccqt:'00'+Math.random().toString(16).slice(2,14).toUpperCase()});autoMap(inv);S.invoices.unshift(inv);$('#sy-p').style.width=((k+1)/todo.length*100)+'%';$('#sy-t').textContent=`${k+1}/${todo.length}`;}
+  for(let k=0;k<todo.length;k++){await sleep(350);const raw=JSON.parse(JSON.stringify(todo[k]));const err=raw.kyhieu==='C26TKL'?{nmDchi:'Số 12 Nguyễn Huệ, Quận 1, TP.HCM'}:raw.kyhieu==='C26TVN'?{ngayKy:nextDay(raw.ngay)+'T08:05:00'}:{};const inv=mk(withMeta({...raw,source:'XML',mccqt:'00'+Math.random().toString(16).slice(2,14).toUpperCase()},err));autoMap(inv);S.invoices.unshift(inv);$('#sy-p').style.width=((k+1)/todo.length*100)+'%';$('#sy-t').textContent=`${k+1}/${todo.length}`;}
   await sleep(300);renderNav();render();toast(`Đã đồng bộ ${todo.length} hóa đơn mới`);}
 
 /* Ngăn chi tiết */
@@ -309,6 +431,8 @@ function openDrawer(id){const inv=S.invoices.find(i=>i.id===id);if(!inv)return;
     ${lock?`<div class="callout ok">Đã ghi vào Bravo, số chứng từ <b class="mono">${inv.bravoNo}</b>.</div>`:iss.length?`<div class="callout bad">Chưa đẩy được sang Bravo: ${iss.map(esc).join(' · ')}</div>`:`<div class="callout ok">Đủ thông tin để đẩy sang Bravo.</div>`}
     ${r&&r[1]!=='ok'?`<div class="callout ${r[1]}">Rủi ro nhà cung cấp: ${esc(r[0])}</div>`:''}
     ${de.length?`<div class="callout warn">Thuế GTGT có thể không được khấu trừ: ${de.map(esc).join(' · ')}</div>`:''}
+    ${(()=>{const ck=checks(inv);return ck.length?`<div class="callout bad"><b>Kiểm tra hóa đơn: ${ck.length} lỗi</b>${ck.map(x=>`<div style="margin-top:6px">• ${CHK[x.k][1]} — đúng: <b>${esc(x.dung)}</b>; trên hóa đơn: <b>${esc(x.tren)}</b></div>`).join('')}</div>`:'';})()}
+    ${inv.nmTen||inv.ngayKy?`<div class="sub" style="line-height:1.7">Người mua: <b>${esc(inv.nmTen||'—')}</b> · MST ${esc(inv.nmMst||'—')}<br>Địa chỉ người mua: ${esc(inv.nmDchi||'—')}<br>Người ký: ${esc(inv.nguoiKy||'—')} · Ngày ký: ${inv.ngayKy?dmy(inv.ngayKy.slice(0,10)):'—'}${inv.mccqt?` · Mã CQT: <span class="mono">${esc(inv.mccqt)}</span>`:''}</div>`:''}
     <div><h3 class="sec">Thông tin hóa đơn</h3><div class="grid2">
      <div class="field"><label for="e-mst">MST người bán</label><input id="e-mst" value="${esc(inv.mst)}" ${dis}></div>
      <div class="field"><label for="e-ten">Tên người bán</label><input id="e-ten" value="${esc(inv.ten)}" ${dis}></div>
@@ -351,9 +475,26 @@ function xmlModal(){$('#overlay').innerHTML=`<div class="modal" data-closebg><di
   <textarea id="xml-in" spellcheck="false" style="margin-top:8px">${esc(invToXml({khms:'1',kyhieu:'C26TQV',so:String(4400+Math.floor(Math.random()*500)),ngay:'2026-10-14',httt:'CK',ten:'Công ty TNHH Thiết bị Quạt Việt',mst:'0319990011',mccqt:'00A1B2C3D4E5F60718293A4B5C',lines:[{ten:'Quạt hút ly tâm 1,5kW',dvt:'Cái',sl:2,dg:8650000,tt:17300000,ts:10},{ten:'Lắp đặt, căn chỉnh tại công trình',dvt:'Gói',sl:1,dg:1200000,tt:1200000,ts:8}],truoc:18500000,thue:1826000,tong:20326000}))}</textarea>
   <footer><button class="btn" data-close>Hủy</button><button class="btn primary" data-act="xmlGo">Đọc XML</button></footer></div></div>`;}
 
+/* ----- Kiểm tra hóa đơn ----- */
+let chkSel='';
+VIEWS.check=()=>{const list=INV('mua').filter(i=>i.mst&&i.so);const res=list.map(i=>({i,c:checks(i)}));
+  const cnt=k=>res.filter(r=>r.c.some(x=>x.k===k)).length;const bad=res.filter(r=>r.c.length);
+  const rows=chkSel?res.filter(r=>r.c.some(x=>x.k===chkSel)):bad;const noRisk=!list.some(i=>S.checked[i.mst]);
+  return head('Kiểm tra hóa đơn đầu vào','Đối chiếu từng hóa đơn với thông tin đăng ký của tài khoản thuế đang chọn và dữ liệu chữ ký số trong file XML. Hóa đơn sai thông tin người mua nên yêu cầu người bán điều chỉnh trước khi kê khai.',
+   `<button class="btn" data-act="riskAll">Tra rủi ro MST người bán</button><button class="btn primary" data-act="chkXlsx">Tải Excel</button>`)+
+  `${noRisk?'<div class="callout info" style="margin-bottom:12px">Mục "MST người bán rủi ro" chỉ có kết quả sau khi bấm "Tra rủi ro MST người bán" (dữ liệu tra cứu đang mô phỏng).</div>':''}<div id="riskbox"></div>
+  <div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="stat"><div class="l">Hóa đơn đã kiểm tra</div><div class="n">${list.length}</div></div><div class="stat"><div class="l"><span class="dot" style="background:var(--bad)"></span>Hóa đơn có lỗi</div><div class="n">${bad.length}</div></div></div>
+  <div class="chips" style="margin-bottom:12px"><button class="chip ${chkSel===''?'on':''}" data-chk="">Tất cả lỗi <b>${bad.length}</b></button>${CHECKS.map(([k,l,sev])=>`<button class="chip ${sev} ${chkSel===k?'on':''}" data-chk="${k}">${l}: <b>${cnt(k)}</b></button>`).join('')}</div>
+  <div class="panel"><div class="scroll"><table><thead><tr><th>Hóa đơn</th><th>Người bán</th><th>Lỗi</th><th>Đúng</th><th>Trên hóa đơn</th></tr></thead><tbody>
+  ${rows.length?rows.flatMap(({i,c})=>c.filter(x=>!chkSel||x.k===chkSel).map((x,n)=>`<tr class="click" data-open="${i.id}">${n?'<td></td><td></td>':`<td class="mono">${esc(i.kyhieu)}<div class="sub">Số ${esc(i.so)} · ${dmy(i.ngay)}</div></td><td style="min-width:180px">${esc(i.ten)}<div class="sub mono">${esc(i.mst)}</div></td>`}
+    <td><span class="pill ${CHK[x.k][2]}">${CHK[x.k][1]}</span></td><td style="min-width:160px">${esc(x.dung)}</td><td style="min-width:160px">${diffHtml(x.dung,x.tren)}</td></tr>`)).join(''):`<tr><td colspan="5" class="empty">${list.length?'Không phát hiện lỗi nào.':'Chưa có hóa đơn mua vào để kiểm tra.'}</td></tr>`}
+  </tbody></table></div></div>`;};
+/* Tô đậm phần khác nhau (so theo từ) */
+function diffHtml(a,b){const A=new Set(norm(a).split(' '));return String(b||'').split(/(\s+)/).map(w=>w.trim()&&!A.has(norm(w))?`<mark>${esc(w)}</mark>`:esc(w)).join('');}
+
 /* ----- Tải hàng loạt ----- */
 let bsel=new Set(),bopt={xml:true,html:true,xlsx:true};
-VIEWS.batch=()=>{const list=S.invoices.filter(i=>i.mst&&i.so);
+VIEWS.batch=()=>{const list=INV().filter(i=>i.mst&&i.so);
   return head('Tải hàng loạt','Chọn hóa đơn rồi tải một file ZIP gồm XML, bản thể hiện (HTML, in ra PDF được) và bảng kê Excel. Phần "Lấy PDF gốc" đang mô phỏng.',
    `<button class="btn" data-act="fetchPdf">Lấy PDF gốc từ nhà cung cấp</button><button class="btn primary" data-act="zip">Tải ZIP</button>`)+
   `<div class="toolbar">${[['xml','File XML'],['html','Bản thể hiện (HTML)'],['xlsx','Bảng kê Excel']].map(([k,l])=>`<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="chk" data-bopt="${k}" ${bopt[k]?'checked':''}>${l}</label>`).join('')}<span class="sub" style="margin-left:auto">${bsel.size} hóa đơn được chọn</span></div>
@@ -377,10 +518,10 @@ async function makeZip(){const list=S.invoices.filter(i=>bsel.has(i.id));if(!lis
 let bk={mode:'th',from:'2026-09-01',to:'2026-10-31'};
 const inRange=i=>i.ngay&&i.ngay>=bk.from&&i.ngay<=bk.to;
 function bkSheets(list){
-  const th=[['STT','Ngày','Ký hiệu','Số HĐ','MST người bán','Tên người bán','Tiền trước thuế','Tiền thuế','Tổng cộng','Thanh toán','Trạng thái','Số CT Bravo'],...list.map((i,k)=>[k+1,dmy(i.ngay),i.kyhieu,i.so,i.mst,i.ten,i.truoc,i.thue,i.tong,i.httt==='TM'?'Tiền mặt':'Chuyển khoản',STATUS[i.status][1],i.bravoNo])];
+  const th=[['STT','Ký hiệu mẫu số','Ký hiệu','Số HĐ','Ngày lập','Ngày người bán ký','Mã CQT','Ngày CQT ký','Loại','MST người bán','Tên người bán','MST người mua','Tên người mua','Địa chỉ người mua','Tiền trước thuế','Tiền thuế','Tổng cộng','Thanh toán','Trạng thái','Kết quả kiểm tra','Số CT Bravo'],...list.map((i,k)=>[k+1,i.khms,i.kyhieu,i.so,dmy(i.ngay),i.ngayKy?dmy(i.ngayKy.slice(0,10)):'',i.mccqt||'',i.ngayCap?dmy(i.ngayCap.slice(0,10)):'',CODE[codeOf(i)]||'',i.mst,i.ten,i.nmMst||'',i.nmTen||'',i.nmDchi||'',i.truoc,i.thue,i.tong,i.httt==='TM'?'Tiền mặt':'Chuyển khoản',STATUS[i.status][1],checks(i).map(c=>CHK[c.k][1]).join('; ')||'Không lỗi',i.bravoNo])];
   const ct=[['Ngày','Ký hiệu','Số HĐ','MST','Người bán','Tên hàng','ĐVT','Số lượng','Đơn giá','Thành tiền','Thuế suất','Tiền thuế','TK nợ','Khoản mục'],...list.flatMap(i=>i.lines.map(l=>[dmy(i.ngay),i.kyhieu,i.so,i.mst,i.ten,l.ten,l.dvt,l.sl,l.dg,l.tt,l.ts+'%',Math.round(l.tt*l.ts/100),l.tk,l.km]))];
-  return [{name:'Tong hop',aoa:th,cols:[5,11,9,9,13,38,14,12,14,12,13,14]},{name:'Chi tiet mat hang',aoa:ct,cols:[11,9,9,13,30,38,8,10,12,14,9,12,8,26]}];}
-VIEWS.bk=()=>{const list=S.invoices.filter(inRange);
+  return [{name:'Tong hop',aoa:th,cols:[5,8,9,9,11,11,22,11,12,13,38,13,30,40,14,12,14,12,13,30,14]},{name:'Chi tiet mat hang',aoa:ct,cols:[11,9,9,13,30,38,8,10,12,14,9,12,8,26]}];}
+VIEWS.bk=()=>{const list=INV().filter(inRange);
   const sum=(a,f)=>a.reduce((s,x)=>s+f(x),0);
   const body=bk.mode==='th'?`<thead><tr><th>Ngày</th><th>Ký hiệu / Số</th><th>Người bán</th><th class="num">Trước thuế</th><th class="num">Thuế</th><th class="num">Tổng cộng</th><th>TT</th></tr></thead><tbody>${list.map(i=>`<tr><td class="mono">${dmy(i.ngay)}</td><td class="mono">${esc(i.kyhieu)} · ${esc(i.so)}</td><td>${esc(i.ten)}<div class="sub mono">${esc(i.mst)}</div></td><td class="num">${fmt(i.truoc)}</td><td class="num">${fmt(i.thue)}</td><td class="num">${fmt(i.tong)}</td><td class="sub">${i.httt}</td></tr>`).join('')}</tbody>
    <tfoot><tr><td colspan="3">Cộng ${list.length} hóa đơn</td><td class="num">${fmt(sum(list,i=>i.truoc))}</td><td class="num">${fmt(sum(list,i=>i.thue))}</td><td class="num">${fmt(sum(list,i=>i.tong))}</td><td></td></tr></tfoot>`
@@ -391,7 +532,7 @@ VIEWS.bk=()=>{const list=S.invoices.filter(inRange);
   <div class="panel"><div class="scroll"><table>${body}</table></div></div>`;};
 
 /* ----- Rủi ro NCC ----- */
-VIEWS.risk=()=>{const m=new Map();S.invoices.filter(i=>i.mst).forEach(i=>{const o=m.get(i.mst)||{ten:i.ten,n:0,s:0};o.n++;o.s+=i.tong;m.set(i.mst,o);});
+VIEWS.risk=()=>{const m=new Map();INV('mua').filter(i=>i.mst).forEach(i=>{const o=m.get(i.mst)||{ten:i.ten,n:0,s:0};o.n++;o.s+=i.tong;m.set(i.mst,o);});
   const rows=[...m.entries()];const bad=rows.filter(([k])=>riskOf(k)?.[1]==='bad').length,unc=rows.filter(([k])=>!S.checked[k]).length;
   return head('Kiểm tra rủi ro nhà cung cấp','Tra trạng thái hoạt động theo MST của toàn bộ NCC. Hóa đơn của NCC rủi ro cao bị gắn cảnh báo và loại khỏi số thuế được khấu trừ trên tờ khai.',`<button class="btn primary" data-act="riskAll">Kiểm tra hàng loạt</button>`)+
   `<div class="callout warn" style="margin-bottom:12px">Kết quả tra cứu ở bản demo là dữ liệu mô phỏng.</div>
@@ -400,14 +541,14 @@ VIEWS.risk=()=>{const m=new Map();S.invoices.filter(i=>i.mst).forEach(i=>{const 
   <div class="panel"><div class="scroll"><table><thead><tr><th>MST</th><th>Tên NCC</th><th class="num">Số HĐ</th><th class="num">Tổng giá trị</th><th>Tình trạng</th><th>Kiểm tra lúc</th></tr></thead><tbody>
   ${rows.map(([k,o])=>{const r=riskOf(k);return `<tr><td class="mono">${k}</td><td>${esc(o.ten)}</td><td class="num">${o.n}</td><td class="num">${fmt(o.s)}</td><td>${r?`<span class="pill ${r[1]}">${esc(r[0])}</span>`:'<span class="pill mut">Chưa kiểm tra</span>'}</td><td class="sub mono">${S.checked[k]||'—'}</td></tr>`;}).join('')}
   </tbody></table></div></div>`;};
-async function riskAll(){const msts=[...new Set(S.invoices.filter(i=>i.mst).map(i=>i.mst))];const box=$('#riskbox');
+async function riskAll(){const msts=[...new Set(INV('mua').filter(i=>i.mst).map(i=>i.mst))];const box=$('#riskbox');
   box.innerHTML=`<div class="card" style="margin-bottom:12px"><b>Đang tra cứu ${msts.length} MST…</b><div class="progress" style="margin-top:8px"><i id="rp"></i></div></div>`;
   for(let k=0;k<msts.length;k++){await sleep(160);S.checked[msts[k]]=new Date().toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});$('#rp').style.width=((k+1)/msts.length*100)+'%';}
   render();const bad=msts.filter(m=>riskOf(m)[1]==='bad').length;toast(bad?`Phát hiện ${bad} NCC rủi ro cao`:'Không có NCC rủi ro cao');}
 
 /* ----- Ghép mã ----- */
-VIEWS.map=()=>{const rows=[];S.invoices.forEach(i=>{if(i.status==='day')return;i.lines.forEach((l,ix)=>{if(!l.tk)rows.push({i,l,ix});});});
-  const msts=[...new Map(S.invoices.filter(i=>i.mst).map(i=>[i.mst,i.ten])).entries()];
+VIEWS.map=()=>{const rows=[];INV().forEach(i=>{if(i.status==='day')return;i.lines.forEach((l,ix)=>{if(!l.tk)rows.push({i,l,ix});});});
+  const msts=[...new Map(INV().filter(i=>i.mst).map(i=>[party(i).mst,party(i).ten])).entries()];
   return head('Ghép mã & hạch toán tự động','App tự gán tài khoản và khoản mục theo quy tắc từ khóa. Dòng nào chưa khớp quy tắc, bạn gán một lần và chọn "Nhớ" để lần sau app tự gán.')+
   `<div class="cols"><div class="card"><h3>Dòng hàng chưa có tài khoản</h3><p class="lead">${rows.length?`${rows.length} dòng cần gán.`:'Mọi dòng hàng đều đã có tài khoản.'}</p>
    <div class="scroll"><table><thead><tr><th>Hóa đơn</th><th>Tên hàng / dịch vụ</th><th>Gán</th><th>Nhớ</th></tr></thead><tbody>
@@ -421,7 +562,7 @@ VIEWS.map=()=>{const rows=[];S.invoices.forEach(i=>{if(i.status==='day')return;i
 
 /* ----- Đẩy Bravo ----- */
 let picked=new Set(),fmtB='sql',pushLog='';
-const queue=()=>S.invoices.filter(i=>i.status==='duyet'||i.status==='loi');
+const queue=()=>INV().filter(i=>i.status==='duyet'||i.status==='loi');
 function previewText(){const q=queue();const list=q.filter(i=>picked.has(i.id)).length?q.filter(i=>picked.has(i.id)):q;if(!list.length)return '-- Hàng chờ đang trống';
   if(fmtB==='tsv'){const h=['Ngày CT','Mã NCC','MST','Ký hiệu HĐ','Số HĐ','Diễn giải','TK nợ','TK có','Khoản mục','Số lượng','Thành tiền','Thuế suất','Tiền thuế'];return [h,...list.flatMap(i=>i.lines.map(l=>[dmy(i.ngay),S.ncc[i.mst]||'',i.mst,i.kyhieu,i.so,l.ten,l.tk,'331',(l.km||'').split(' · ')[0],l.sl,l.tt,l.ts+'%',Math.round(l.tt*l.ts/100)]))].map(r=>r.join('\t')).join('\n');}
   const sq=s=>`N'${String(s??'').replace(/'/g,"''")}'`;
@@ -447,7 +588,7 @@ async function push(){const list=queue().filter(i=>picked.has(i.id));if(!list.le
 let tkp={type:'q',val:'2026-Q4'};
 function periodRange(){if(tkp.type==='m'){const [y,m]=tkp.val.split('-').map(Number);const last=new Date(y,m,0).getDate();return [`${tkp.val}-01`,`${tkp.val}-${String(last).padStart(2,'0')}`];}
   const [y,q]=tkp.val.split('-Q').map(Number);const m1=(q-1)*3+1,m3=m1+2,last=new Date(y,m3,0).getDate();return [`${y}-${String(m1).padStart(2,'0')}-01`,`${y}-${String(m3).padStart(2,'0')}-${last}`];}
-function tkData(){const [a,b]=periodRange();const list=S.invoices.filter(i=>i.ngay>=a&&i.ngay<=b&&i.mst&&i.so);
+function tkData(){const [a,b]=periodRange();const list=INV('mua').filter(i=>i.ngay>=a&&i.ngay<=b&&i.mst&&i.so);
   const v23=list.reduce((s,i)=>s+i.truoc,0),v24=list.reduce((s,i)=>s+i.thue,0);const ex=list.filter(i=>dedErr(i).length);const v25=v24-ex.reduce((s,i)=>s+i.thue,0);
   const g=new Map();list.forEach(i=>i.lines.filter(l=>l.ts===8).forEach(l=>{const o=g.get(l.ten)||{v:0,t:0};o.v+=l.tt;o.t+=Math.round(l.tt*.08);g.set(l.ten,o);}));
   return {a,b,list,v23,v24,v25,ex,pl:[...g.entries()]};}
@@ -566,20 +707,33 @@ VIEWS.notes=()=>{const R=[
 /* ============================================================ SỰ KIỆN ============================================================ */
 const ACT={
  sync:doSync,
- approveAll(){let n=0;S.invoices.forEach(i=>{if(i.status==='moi'&&!issues(i).length){i.status='duyet';n++;}});renderNav();render();toast(n?`Đã duyệt ${n} hóa đơn`:'Không có hóa đơn mới nào đủ mã để duyệt');},
+ filters(){filterPanel();},
+ fApply(){const v=id=>$('#'+id)?.value.trim()||'';Object.assign(filt,{from:v('ff-from'),to:v('ff-to'),pdf:v('ff-pdf'),xml:v('ff-xml'),code:v('ff-code'),src:v('ff-src'),kh:v('ff-kh'),so:v('ff-so'),ten:v('ff-ten'),mst:v('ff-mst'),chk:v('ff-chk')});$('#overlay').innerHTML='';render();},
+ fClear(){filt={...F0,q:filt.q};$('#overlay').innerHTML='';render();},
+ acctAdd(){acctModal(false);}, acctEdit(){acctModal(true);},
+ acctSave(el){const edit=el.dataset.edit==='1';const mst=(edit?S.curAcct:$('#a-mst').value.trim()),ten=$('#a-ten').value.trim(),dchi=$('#a-dchi').value.trim();
+   if(!/^\d{10}(-\d{3})?$/.test(mst)){toast('MST phải gồm 10 số, chi nhánh thêm -xxx');return;}if(!ten){toast('Nhập tên đăng ký');return;}
+   if(edit)Object.assign(acctOf(mst),{ten,dchi});else{if(S.accounts.some(a=>a.mst===mst)){toast('MST này đã có');return;}S.accounts.push({mst,ten,dchi});S.curAcct=mst;}
+   if(S.accounts[0].mst===mst)S.company=ten;$('#overlay').innerHTML='';renderNav();render();toast(edit?'Đã lưu tài khoản':'Đã thêm tài khoản '+mst);},
+ acctDel(el){if(INV('mua').length+INV('ban').length){toast('Tài khoản còn hóa đơn, không xóa được');return;}if(el.dataset.confirm!=='1'){el.dataset.confirm='1';el.textContent='Bấm lần nữa để xóa';return;}
+   S.accounts=S.accounts.filter(a=>a.mst!==S.curAcct);S.curAcct=S.accounts[0].mst;$('#overlay').innerHTML='';renderNav();render();toast('Đã xóa tài khoản');},
+ chkXlsx(){const list=INV('mua').filter(i=>i.mst&&i.so);const rows=list.flatMap(i=>{const c=checks(i);return c.length?c.map(x=>[i.kyhieu,i.so,dmy(i.ngay),i.mst,i.ten,CHK[x.k][1],x.dung,x.tren]):[[i.kyhieu,i.so,dmy(i.ngay),i.mst,i.ten,'Không lỗi','','']];});
+   const sum=[['Lỗi','Số hóa đơn'],...CHECKS.map(([k,l])=>[l,list.filter(i=>checks(i).some(x=>x.k===k)).length])];
+   saveFile(`kiem_tra_hoa_don_${S.curAcct}.xlsx`,xlsxBytes([{name:'Chi tiet',aoa:[['Ký hiệu','Số HĐ','Ngày lập','MST người bán','Tên người bán','Kết quả','Đúng','Trên hóa đơn'],...rows],cols:[10,9,11,13,38,28,40,40]},{name:'Tong hop',aoa:sum,cols:[32,12]}]));},
+ approveAll(){let n=0;INV().forEach(i=>{if(i.status==='moi'&&!issues(i).length){i.status='duyet';n++;}});renderNav();render();toast(n?`Đã duyệt ${n} hóa đơn`:'Không có hóa đơn mới nào đủ mã để duyệt');},
  xmlModal,
  xmlGo(){try{const inv=parseXml($('#xml-in').value);if(S.invoices.some(x=>keyOf(x)===keyOf(inv))){toast('Hóa đơn này đã có (trùng MST + ký hiệu + số)');return;}autoMap(inv);S.invoices.unshift(inv);$('#overlay').innerHTML='';renderNav();render();toast(`Đã đọc XML: ${inv.ten} · ${fmt(inv.tong)} đ`);openDrawer(inv.id);}catch(e){toast(e.message);}},
  save:el=>saveDrawer(+el.dataset.id,false), approve:el=>saveDrawer(+el.dataset.id,true),
  del(el){S.invoices=S.invoices.filter(i=>i.id!==+el.dataset.id);$('#overlay').innerHTML='';renderNav();render();toast('Đã xóa hóa đơn');},
  aiInv:el=>aiInvoice(+el.dataset.id),
- bAll(el){S.invoices.filter(i=>i.mst&&i.so).forEach(i=>el.checked?bsel.add(i.id):bsel.delete(i.id));render();},
+ bAll(el){INV().filter(i=>i.mst&&i.so).forEach(i=>el.checked?bsel.add(i.id):bsel.delete(i.id));render();},
  fetchPdf, zip:makeZip,
  signOut(){Cloud.signOut();},
  async addMember(){const uid=$('#m-uid').value.trim(),email=$('#m-email').value.trim(),role=$('#m-role').value;if(uid.length<10){toast('UID không hợp lệ');return;}
    try{await Cloud.addMember(uid,email,role);toast('Đã cấp quyền '+(email||uid));render();}catch(e){toast('Không thêm được: '+(e.code||e.message));}},
  async rmMember(el){if(el.dataset.confirm!=='1'){el.dataset.confirm='1';el.textContent='Bấm lần nữa để xóa';return;}
    try{await Cloud.removeMember(el.dataset.uid);toast('Đã xóa thành viên');render();}catch(e){toast('Không xóa được: '+(e.code||e.message));}},
- bkXlsx(){const list=S.invoices.filter(inRange);saveFile(`bang_ke_${bk.from}_${bk.to}.xlsx`,xlsxBytes(bkSheets(list)));},
+ bkXlsx(){const list=INV().filter(inRange);saveFile(`bang_ke_${bk.from}_${bk.to}.xlsx`,xlsxBytes(bkSheets(list)));},
  riskAll,
  push, pAll(el){queue().forEach(i=>el.checked?picked.add(i.id):picked.delete(i.id));render();},
  copyPrev(){const t=$('#preview').textContent;navigator.clipboard?.writeText(t).then(()=>toast('Đã sao chép')).catch(()=>{const r=document.createRange();r.selectNodeContents($('#preview'));const s=getSelection();s.removeAllRanges();s.addRange(r);toast('Đã chọn sẵn nội dung, nhấn Ctrl+C');});},
@@ -596,6 +750,9 @@ const ACT={
 document.addEventListener('click',e=>{const t=e.target;
   const g=t.closest('[data-go]');if(g){go(g.dataset.go);return;}
   const st=t.closest('[data-st]');if(st){filt.status=st.dataset.st;render();return;}
+  const lo=t.closest('[data-loai]');if(lo){curLoai=lo.dataset.loai;try{localStorage.setItem('cthd-loai',curLoai);}catch(e){}filt={...F0};renderNav();render();return;}
+  const uf=t.closest('[data-unf]');if(uf){filt[uf.dataset.unf]='';render();return;}
+  const ck=t.closest('[data-chk]');if(ck){chkSel=ck.dataset.chk;render();return;}
   const o=t.closest('[data-open]');if(o){openDrawer(+o.dataset.open);return;}
   if(t.closest('[data-close]')||t.matches('[data-closebg]')){$('#overlay').innerHTML='';return;}
   const bm=t.closest('[data-bkm]');if(bm){bk.mode=bm.dataset.bkm;render();return;}
@@ -607,7 +764,7 @@ document.addEventListener('click',e=>{const t=e.target;
 });
 document.addEventListener('change',e=>{const t=e.target,d=t.dataset;
   if(t.id==='file'){handleFiles([...t.files]);t.value='';return;}
-  if(t.id==='f-src'){filt.src=t.value;$('#rows').innerHTML=rowsHtml();return;}
+  if(t.id==='acct'){S.curAcct=t.value;filt={...F0};bsel.clear();picked.clear();renderNav();render();return;}
   if(d.bsel){t.checked?bsel.add(+d.bsel):bsel.delete(+d.bsel);render();return;}
   if(d.bopt){bopt[d.bopt]=t.checked;return;}
   if(t.id==='bk-from'||t.id==='bk-to'){bk[t.id==='bk-from'?'from':'to']=t.value;render();return;}
@@ -629,7 +786,7 @@ document.addEventListener('change',e=>{const t=e.target,d=t.dataset;
   if(t.id==='p-cc'){S.congChuan=Math.max(1,vnNum(t.value)||26);render();return;}
   if(d.emp){const [k,f]=d.emp.split(':');S.emps[+k][f]=vnNum(t.value);if(f==='lcb')S.emps[+k].lbh=S.emps[+k].lcb;persist();toast(`Đã cập nhật ${S.emps[+k].ten}`);return;}
 });
-document.addEventListener('input',e=>{if(e.target.id==='q'){filt.q=e.target.value;$('#rows').innerHTML=rowsHtml();}});
+document.addEventListener('input',e=>{if(e.target.id==='q'){filt.q=e.target.value;$('#rows').innerHTML=rowsHtml();const sb=$('#sumbar');if(sb)sb.innerHTML=sumbarHtml(filtered());}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')$('#overlay').innerHTML='';});
 
 /* Khởi động — gọi từ index.html sau khi cloud.js sẵn sàng */
@@ -638,6 +795,7 @@ async function startApp(){
   if(window.Cloud?.enabled){const st=await Cloud.loadState();if(st){S=st;loaded=true;}}
   else loaded=load();
   if(!loaded){seed();if(window.Cloud?.enabled)Cloud.save(S,true);}
+  migrate();
   try{const r=localStorage.getItem(STORE+'-route');if(r&&VIEWS[r])route=r;}catch(e){}
   renderNav();render();
 }

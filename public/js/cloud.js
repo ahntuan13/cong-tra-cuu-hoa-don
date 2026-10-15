@@ -109,7 +109,7 @@ async function boot() {
 
   /* ---------- Lưu: chỉ ghi phần thay đổi, gom theo lô ---------- */
   const settingsOf = S => clean({ seq: S.seq, bravoSeq: S.bravoSeq, ncc: S.ncc, rules: S.rules, checked: S.checked,
-    company: S.company, congChuan: S.congChuan, capBH: S.capBH, emps: S.emps });
+    company: S.company, congChuan: S.congChuan, capBH: S.capBH, emps: S.emps, accounts: S.accounts, curAcct: S.curAcct });
   const payByMonth = S => { const g = new Map(); (S.hist || []).forEach(h => { if (!g.has(h.m)) g.set(h.m, []); g.get(h.m).push(h); }); return g; };
   function snapshot(S) {
     last.settings = JSON.stringify(settingsOf(S));
