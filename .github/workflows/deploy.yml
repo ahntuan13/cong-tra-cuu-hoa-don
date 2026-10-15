@@ -32,16 +32,28 @@ jobs:
           fi
           printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
 
-      - name: Deploy Hosting và Firestore rules
+      - name: Deploy Hosting (giao diện web)
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
         run: |
           set -o pipefail
-          if ! npx --yes firebase-tools@15.30.0 deploy --only hosting,firestore --project cong-tra-cuu-hoa-don --non-interactive 2>&1 | tee "$RUNNER_TEMP/deploy.log"; then
-            # Đưa các dòng lỗi lên phần tóm tắt của lần chạy để dễ đọc
-            grep -iE "error|denied|permission|not enabled|has not been used|403|404" "$RUNNER_TEMP/deploy.log" | tail -15 | while IFS= read -r line; do echo "::error::$line"; done
+          if ! npx --yes firebase-tools@15.30.0 deploy --only hosting --project cong-tra-cuu-hoa-don --non-interactive 2>&1 | tee "$RUNNER_TEMP/hosting.log"; then
+            grep -iE "error|denied|permission|not enabled|has not been used|403|404" "$RUNNER_TEMP/hosting.log" | tail -15 | while IFS= read -r line; do echo "::error::[hosting] $line"; done
             exit 1
           fi
+
+      - name: Deploy Firestore rules
+        if: always()
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: |
+          set -o pipefail
+          for attempt in 1 2 3; do
+            if npx --yes firebase-tools@15.30.0 deploy --only firestore --project cong-tra-cuu-hoa-don --non-interactive 2>&1 | tee "$RUNNER_TEMP/firestore.log"; then exit 0; fi
+            echo "Lần $attempt thất bại, thử lại sau 30 giây…"; sleep 30
+          done
+          grep -iE "error|denied|permission|not enabled|has not been used|403|404" "$RUNNER_TEMP/firestore.log" | tail -15 | while IFS= read -r line; do echo "::error::[firestore] $line"; done
+          exit 1
 
       - name: Xóa khóa tạm
         if: always()
