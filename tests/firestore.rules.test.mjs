@@ -100,7 +100,7 @@ test('8. Quản trị công ty: đổi vai trò, đổi tên; không tự nâng 
   await assertFails(setDoc(doc(bob(), 'orgs/cty-a/invoices/4'), { id: 4 }));   // giờ chỉ xem
   await assertSucceeds(updateDoc(doc(alice(), 'orgs/cty-a'), { name: 'Công ty A mới' }));
   await assertFails(updateDoc(doc(alice(), 'orgs/cty-a'), { plan: { maxInvoices: 999999 } }));
-  await assertFails(updateDoc(doc(alice(), 'orgs/cty-a'), { status: 'active' }));
+  await assertFails(updateDoc(doc(alice(), 'orgs/cty-a'), { status: 'locked' }));   // tự đổi trạng thái
   await assertFails(deleteDoc(doc(alice(), 'orgs/cty-a/members/alice')));      // không tự xóa mình
 });
 
