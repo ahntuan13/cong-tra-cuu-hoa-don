@@ -1,0 +1,42 @@
+# Tự động deploy lên Firebase mỗi khi đẩy code lên nhánh main.
+# Cần 1 secret trong GitHub: Settings → Secrets and variables → Actions → FIREBASE_SERVICE_ACCOUNT
+# (nội dung file JSON tải ở Firebase Console → Project settings → Service accounts → Generate new private key)
+name: Deploy Firebase
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: firebase-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Kiểm tra secret
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SA" ]; then
+            echo "::error::Chưa có secret FIREBASE_SERVICE_ACCOUNT. Xem README, mục 'Tự động deploy bằng GitHub Actions'."
+            exit 1
+          fi
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+
+      - name: Deploy Hosting và Firestore rules
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: npx --yes firebase-tools@15.30.0 deploy --only hosting,firestore --project cong-tra-cuu-hoa-don --non-interactive
+
+      - name: Xóa khóa tạm
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sa.json"

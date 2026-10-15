@@ -133,6 +133,19 @@ Xong, app chạy ở `https://<project-id>.web.app`.
 
 Muốn chạy ở máy với Firebase thật: `firebase serve --only hosting` rồi mở http://localhost:5000.
 
+### Cách khác — Tự động deploy bằng GitHub Actions (không cần cài gì trên máy)
+Repo có sẵn `.github/workflows/deploy.yml`: mỗi lần đẩy code lên nhánh `main`, GitHub tự deploy Hosting và Firestore rules.
+
+1. Firebase Console → bánh răng **Project settings** → tab **Service accounts** → **Generate new private key** → **Generate key**. Máy tải về một file `.json`.
+2. Mở file đó bằng Notepad, chọn tất cả, copy.
+3. Trên GitHub: repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**.
+   - Name: `FIREBASE_SERVICE_ACCOUNT`
+   - Secret: dán nội dung file JSON → **Add secret**.
+4. Tab **Actions** → **Deploy Firebase** → **Run workflow**. Khoảng 1–2 phút sau app chạy ở `https://<project-id>.web.app`.
+5. Xóa file `.json` trên máy sau khi dán xong. File này là khóa quản trị project, không gửi cho ai và không đưa vào code.
+
+Nếu bước deploy báo lỗi `403` / `PERMISSION_DENIED`: Google Cloud Console → **IAM** → tìm tài khoản `firebase-adminsdk-…@<project-id>.iam.gserviceaccount.com` → **Edit** → thêm vai trò **Firebase Hosting Admin** và **Firebase Rules Admin** → Save, rồi chạy lại workflow.
+
 ## Cấp quyền người dùng
 
 | Vai trò | Được làm gì |
